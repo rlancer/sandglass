@@ -1,16 +1,15 @@
 /**
- * Activate a benchmark run into the game (public/sprites/ready).
+ * Activate a model pack for the game.
  *
- *   bun run sprites:activate -- --run openai-gpt-image-1
+ *   bun run sprites:activate -- --model openai/gpt-image-1
+ *   bun run sprites:activate -- --model google/gemini-2.5-flash-image --label try2
  */
-import { activateRun, getActiveRunId, parseArgs } from "./lib/bench";
+import { activateModel, parseArgs, resolvePack } from "./lib/bench";
 
 const args = parseArgs(process.argv.slice(2));
-const runId =
-  (typeof args.run === "string" && args.run) ||
-  process.env.RUN_ID ||
-  getActiveRunId();
+const { model, slug, label } = resolvePack(args);
 
-activateRun(runId);
-console.log(`Active run → ${runId}`);
-console.log(`Copied to public/sprites/ready`);
+activateModel(slug, model, label);
+console.log(`Active model → ${model}`);
+console.log(`Slug         → ${slug}`);
+console.log(`Served from  → public/sprites/models/${slug}/`);

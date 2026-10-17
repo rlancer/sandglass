@@ -1,11 +1,17 @@
 {
-  "runId": "openai-gpt-image-1",
+  "slug": "openai-gpt-image-1",
   "model": "openai/gpt-image-1",
   "provider": "openrouter",
   "createdAt": "2026-10-17T19:21:50.000Z",
   "updatedAt": "2026-10-17T19:50:00.000Z",
   "promptFile": "PROMPT.md",
   "posesFile": "benchmark/poses.json",
+  "paths": {
+    "root": "benchmark/models/openai-gpt-image-1",
+    "raw": "benchmark/models/openai-gpt-image-1/raw",
+    "ready": "benchmark/models/openai-gpt-image-1/ready",
+    "public": "public/sprites/models/openai-gpt-image-1"
+  },
   "notes": "Baseline pack for the Sandglass sprite benchmark. Generated via OpenRouter Image API.",
   "files": {
     "prince_run_0.png": { "status": "ok" },

@@ -1,25 +1,22 @@
 /**
- * Chroma-key + crop + normalize a benchmark run's raw/ → ready/
+ * Process benchmark/models/<slug>/raw → ready
  *
- *   bun run sprites:process -- --run openai-gpt-image-1
+ *   bun run sprites:process -- --model openai/gpt-image-1
  */
 import sharp from "sharp";
 import { mkdir, readdir } from "fs/promises";
 import { existsSync } from "fs";
 import { join } from "path";
 import {
-  getActiveRunId,
+  ensureModelDirs,
+  modelDir,
   parseArgs,
-  runDir,
-  ensureRunDirs,
+  resolvePack,
 } from "./lib/bench";
 
 const SIZE = 256;
 const args = parseArgs(process.argv.slice(2));
-const RUN_ID =
-  (typeof args.run === "string" && args.run) ||
-  process.env.RUN_ID ||
-  getActiveRunId();
+const { model, slug } = resolvePack(args);
 
 function isBg(r: number, g: number, b: number, a: number): boolean {
   if (a < 16) return true;
@@ -116,23 +113,24 @@ async function processFile(srcPath: string, destPath: string, name: string) {
   console.log(`ok ${name} (${cw}x${ch} -> ${SIZE})`);
 }
 
-ensureRunDirs(RUN_ID);
-const rawDir = join(runDir(RUN_ID), "raw");
-const readyDir = join(runDir(RUN_ID), "ready");
-const legacyRaw = join(import.meta.dir, "..", "public", "sprites");
+ensureModelDirs(slug);
+const rawDir = join(modelDir(slug), "raw");
+const readyDir = join(modelDir(slug), "ready");
 
-const rawFiles = existsSync(rawDir)
-  ? (await readdir(rawDir)).filter((f) => f.endsWith(".png"))
-  : [];
-const srcDir = rawFiles.length ? rawDir : legacyRaw;
+if (!existsSync(rawDir)) {
+  throw new Error(`No raw folder for ${slug}. Generate first: bun run sprites:gen -- --model ${model}`);
+}
 
-if (!existsSync(srcDir)) throw new Error(`No raw sprites for run ${RUN_ID}`);
+const files = (await readdir(rawDir)).filter((f) => f.endsWith(".png"));
+if (!files.length) {
+  throw new Error(`No PNGs in ${rawDir}`);
+}
 
 await mkdir(readyDir, { recursive: true });
-const files = (await readdir(srcDir)).filter((f) => f.endsWith(".png"));
-console.log(`Processing run=${RUN_ID} from ${srcDir}`);
+console.log(`Model pack: ${slug}`);
+console.log(`Processing ${files.length} files from ${rawDir}`);
 for (const f of files) {
-  await processFile(join(srcDir, f), join(readyDir, f), f);
+  await processFile(join(rawDir, f), join(readyDir, f), f);
 }
 console.log(`done → ${readyDir}`);
-console.log(`Next: bun run sprites:activate -- --run ${RUN_ID}`);
+console.log(`Next: bun run sprites:activate -- --model ${model}`);

@@ -1,21 +1,21 @@
 /**
- * Generate benchmark sprite pack via OpenRouter.
+ * Generate sprites into benchmark/models/<model-slug>/raw/
  *
  *   bun run sprites:gen -- --model openai/gpt-image-1
- *   FORCE=1 bun run sprites:gen -- --model google/gemini-2.5-flash-image
- *   bun run sprites:gen -- --model openai/gpt-image-1 --run my-label
+ *   bun run sprites:gen -- --model google/gemini-2.5-flash-image --label try2
+ *   FORCE=1 bun run sprites:gen -- --model openai/gpt-image-1
  */
 import { writeFile } from "fs/promises";
 import { existsSync } from "fs";
 import { join } from "path";
 import {
-  ensureRunDirs,
+  ensureModelDirs,
   loadEnv,
   loadPoseJobs,
   loadPromptBlocks,
-  modelSlug,
   parseArgs,
   readManifest,
+  resolvePack,
   writeManifest,
   type Manifest,
 } from "./lib/bench";
@@ -26,31 +26,34 @@ const args = parseArgs(process.argv.slice(2));
 const KEY = process.env.OPENROUTER_API_KEY;
 if (!KEY) throw new Error("OPENROUTER_API_KEY missing — add it to .env");
 
-const MODEL =
-  (typeof args.model === "string" && args.model) ||
-  process.env.OPENROUTER_IMAGE_MODEL ||
-  "openai/gpt-image-1";
-const RUN_ID =
-  (typeof args.run === "string" && args.run) ||
-  process.env.RUN_ID ||
-  modelSlug(MODEL);
+const { model: MODEL, slug: SLUG, label } = resolvePack(args);
+if (!MODEL.includes("/") && !args.slug && !args.run) {
+  // allow continuing if user passed a bare slug as --model by mistake
+}
 const FORCE = !!args.force || !!process.env.FORCE;
 
 const prompts = loadPromptBlocks();
 const jobs = loadPoseJobs();
-const base = ensureRunDirs(RUN_ID);
+const base = ensureModelDirs(SLUG);
 const rawDir = join(base, "raw");
 
 const now = new Date().toISOString();
-const prev = readManifest(RUN_ID);
+const prev = readManifest(SLUG);
 const manifest: Manifest = {
-  runId: RUN_ID,
+  slug: SLUG,
   model: MODEL,
+  label,
   provider: "openrouter",
   createdAt: prev?.createdAt ?? now,
   updatedAt: now,
   promptFile: "PROMPT.md",
   posesFile: "benchmark/poses.json",
+  paths: {
+    root: `benchmark/models/${SLUG}`,
+    raw: `benchmark/models/${SLUG}/raw`,
+    ready: `benchmark/models/${SLUG}/ready`,
+    public: `public/sprites/models/${SLUG}`,
+  },
   files: { ...(prev?.files ?? {}) },
   notes: prev?.notes,
 };
@@ -95,11 +98,12 @@ async function generate(prompt: string, aspect: string): Promise<Buffer> {
   throw new Error("No image data in response");
 }
 
-console.log(`Benchmark run: ${RUN_ID}`);
-console.log(`Model:         ${MODEL}`);
-console.log(`Prompt:        PROMPT.md`);
-console.log(`Out:           ${rawDir}`);
-console.log(`Force:         ${FORCE}`);
+console.log(`Model pack:  ${SLUG}`);
+console.log(`Model:       ${MODEL}`);
+if (label) console.log(`Label:       ${label}`);
+console.log(`Folder:      benchmark/models/${SLUG}/`);
+console.log(`Prompt:      PROMPT.md`);
+console.log(`Force:       ${FORCE}`);
 
 let ok = 0;
 let fail = 0;
@@ -137,5 +141,5 @@ for (const job of jobs) {
 
 writeManifest(manifest);
 console.log(`done ok=${ok} fail=${fail} skip=${skip}`);
-console.log(`Next: bun run sprites:process -- --run ${RUN_ID}`);
-console.log(`Then: bun run sprites:activate -- --run ${RUN_ID}`);
+console.log(`Next: bun run sprites:process -- --model ${MODEL}${label ? ` --label ${label}` : ""}`);
+console.log(`Then: bun run sprites:activate -- --model ${MODEL}${label ? ` --label ${label}` : ""}`);

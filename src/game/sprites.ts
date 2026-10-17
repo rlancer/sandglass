@@ -7,8 +7,16 @@ type Sheet = {
   ready: boolean;
 };
 
+type ActivePack = {
+  model: string;
+  slug: string;
+  label?: string;
+};
+
 const cache = new Map<string, Sheet>();
 let bootstrapped = false;
+let activeSlug = "openai-gpt-image-1";
+let activeModel = "openai/gpt-image-1";
 
 function load(path: string): Sheet {
   const existing = cache.get(path);
@@ -26,74 +34,96 @@ function load(path: string): Sheet {
   return sheet;
 }
 
-/** Prefetch all gameplay sprites */
+function spriteUrl(name: string): string {
+  // Prefer model-scoped path; fall back to legacy /sprites/ready/
+  return `/sprites/models/${activeSlug}/${name}.png`;
+}
+
+const SPRITE_NAMES = [
+  "prince_idle",
+  "prince_walk",
+  "prince_crouch",
+  "prince_jump",
+  "prince_leap",
+  "prince_fall",
+  "prince_land",
+  "prince_hang",
+  "prince_climb",
+  "prince_fight",
+  "prince_strike",
+  "prince_hurt",
+  "prince_die",
+  "prince_pickup",
+  "prince_run_0",
+  "prince_run_1",
+  "prince_run_2",
+  "prince_run_3",
+  "prince_run_4",
+  "prince_run_5",
+  "guard_idle",
+  "guard_walk",
+  "guard_fight",
+  "guard_strike",
+  "guard_hurt",
+  "guard_die",
+];
+
+/** Prefetch active model pack (reads /sprites/active.json). */
 export function preloadSprites() {
   if (bootstrapped) return;
   bootstrapped = true;
-  const names = [
-    "prince_idle",
-    "prince_walk",
-    "prince_crouch",
-    "prince_jump",
-    "prince_leap",
-    "prince_fall",
-    "prince_land",
-    "prince_hang",
-    "prince_climb",
-    "prince_fight",
-    "prince_strike",
-    "prince_hurt",
-    "prince_die",
-    "prince_pickup",
-    "prince_run_0",
-    "prince_run_1",
-    "prince_run_2",
-    "prince_run_3",
-    "prince_run_4",
-    "prince_run_5",
-    "guard_idle",
-    "guard_walk",
-    "guard_fight",
-    "guard_strike",
-    "guard_hurt",
-    "guard_die",
-  ];
-  for (const n of names) load(`/sprites/ready/${n}.png`);
+
+  void fetch("/sprites/active.json")
+    .then((r) => (r.ok ? r.json() : null))
+    .then((j: ActivePack | null) => {
+      if (j?.slug) {
+        activeSlug = j.slug;
+        activeModel = j.model || activeModel;
+      }
+      for (const n of SPRITE_NAMES) load(spriteUrl(n));
+    })
+    .catch(() => {
+      for (const n of SPRITE_NAMES) load(spriteUrl(n));
+    });
+}
+
+export function getActiveSpritePack(): { slug: string; model: string } {
+  return { slug: activeSlug, model: activeModel };
 }
 
 function princePath(anim: ActorAnimName, runPhase: number): string {
   switch (anim) {
     case "run": {
       const frame = Math.floor((((runPhase % 1) + 1) % 1) * 6) % 6;
-      return `/sprites/ready/prince_run_${frame}.png`;
+      return spriteUrl(`prince_run_${frame}`);
     }
     case "walk":
-      return "/sprites/ready/prince_walk.png";
+      return spriteUrl("prince_walk");
     case "crouch":
-      return "/sprites/ready/prince_crouch.png";
+      return spriteUrl("prince_crouch");
     case "jump":
-      return "/sprites/ready/prince_leap.png";
+      return spriteUrl("prince_leap");
     case "fall":
-      return "/sprites/ready/prince_fall.png";
+      return spriteUrl("prince_fall");
     case "land":
-      return "/sprites/ready/prince_land.png";
+      return spriteUrl("prince_land");
     case "hang":
-      return "/sprites/ready/prince_hang.png";
+      return spriteUrl("prince_hang");
     case "climb":
-      return "/sprites/ready/prince_climb.png";
+      return spriteUrl("prince_climb");
     case "fight":
-      return "/sprites/ready/prince_fight.png";
+      return spriteUrl("prince_fight");
     case "strike":
-      return "/sprites/ready/prince_strike.png";
+      return spriteUrl("prince_strike");
     case "hurt":
-      return "/sprites/ready/prince_hurt.png";
+      return spriteUrl("prince_hurt");
     case "die":
-      return "/sprites/ready/prince_die.png";
+      return spriteUrl("prince_die");
     case "pickup":
-      return "/sprites/ready/prince_pickup.png";
+      return spriteUrl("prince_pickup");
     case "idle":
     default:
-      return "/sprites/ready/prince_idle.png";
+      return spriteUrl("prince_idle");
   }
 }
 
@@ -101,39 +131,56 @@ function guardPath(anim: string): string {
   switch (anim) {
     case "advance":
     case "retreat":
-      return "/sprites/ready/guard_walk.png";
+      return spriteUrl("guard_walk");
     case "strike":
-      return "/sprites/ready/guard_strike.png";
+      return spriteUrl("guard_strike");
     case "hurt":
-      return "/sprites/ready/guard_hurt.png";
+      return spriteUrl("guard_hurt");
     case "die":
-      return "/sprites/ready/guard_die.png";
+      return spriteUrl("guard_die");
     case "idle":
     default:
-      return "/sprites/ready/guard_fight.png";
+      return spriteUrl("guard_fight");
   }
 }
 
 const DRAW_H = 78;
 
-export function drawPrinceSprite(
+function drawSheet(
   ctx: CanvasRenderingContext2D,
-  player: Player,
+  path: string,
+  x: number,
+  y: number,
+  facing: number,
 ): boolean {
-  const path = princePath(player.anim as ActorAnimName, player.runPhase);
   const sheet = load(path);
-  if (!sheet.ready) return false;
+  // Also try legacy path once if model path missing
+  if (!sheet.ready) {
+    const legacy = path.replace(`/sprites/models/${activeSlug}/`, "/sprites/ready/");
+    if (legacy !== path) {
+      const alt = load(legacy);
+      if (!alt.ready) return false;
+      return drawLoaded(ctx, alt, x, y, facing);
+    }
+    return false;
+  }
+  return drawLoaded(ctx, sheet, x, y, facing);
+}
 
+function drawLoaded(
+  ctx: CanvasRenderingContext2D,
+  sheet: Sheet,
+  x: number,
+  y: number,
+  facing: number,
+): boolean {
   ctx.save();
-  ctx.translate(player.x, player.y);
-  ctx.scale(player.facing, 1);
-
-  // Soft contact shadow
+  ctx.translate(x, y);
+  ctx.scale(facing, 1);
   ctx.fillStyle = "rgba(0,0,0,0.35)";
   ctx.beginPath();
   ctx.ellipse(0, 2, 16, 4, 0, 0, Math.PI * 2);
   ctx.fill();
-
   const aspect = sheet.img.width / sheet.img.height;
   const h = DRAW_H;
   const w = h * aspect;
@@ -144,25 +191,14 @@ export function drawPrinceSprite(
   return true;
 }
 
+export function drawPrinceSprite(
+  ctx: CanvasRenderingContext2D,
+  player: Player,
+): boolean {
+  const path = princePath(player.anim as ActorAnimName, player.runPhase);
+  return drawSheet(ctx, path, player.x, player.y, player.facing);
+}
+
 export function drawGuardSprite(ctx: CanvasRenderingContext2D, g: Guard): boolean {
-  const path = guardPath(g.anim);
-  const sheet = load(path);
-  if (!sheet.ready) return false;
-
-  ctx.save();
-  ctx.translate(g.x, g.y);
-  ctx.scale(g.facing, 1);
-
-  ctx.fillStyle = "rgba(0,0,0,0.35)";
-  ctx.beginPath();
-  ctx.ellipse(0, 2, 16, 4, 0, 0, Math.PI * 2);
-  ctx.fill();
-
-  const aspect = sheet.img.width / sheet.img.height;
-  const h = DRAW_H;
-  const w = h * aspect;
-  ctx.imageSmoothingEnabled = true;
-  ctx.drawImage(sheet.img, -w / 2, -h + 2, w, h);
-  ctx.restore();
-  return true;
+  return drawSheet(ctx, guardPath(g.anim), g.x, g.y, g.facing);
 }

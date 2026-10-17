@@ -1,4 +1,5 @@
 {
-  "runId": "openai-gpt-image-1",
-  "note": "Active pack served to the game via public/sprites/ready"
+  "model": "openai/gpt-image-1",
+  "slug": "openai-gpt-image-1",
+  "note": "Active model pack for the game"
 }

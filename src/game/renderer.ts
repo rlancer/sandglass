@@ -10,7 +10,7 @@ import type { Guard, Pickup, Room, World } from "./level";
 import { getLevels } from "./levels";
 import type { Player } from "./player";
 import { formatSeed } from "./rng";
-import { drawGuardSprite, drawPrinceSprite } from "./sprites";
+import { drawGuardSprite, drawPrinceSprite, getActiveSpritePack } from "./sprites";
 import type { GamePhase } from "./types";
 
 export type LevelHud = {
@@ -530,7 +530,9 @@ export class Renderer {
 
     ctx.fillStyle = "#7a8aa0";
     ctx.font = "500 11px 'IBM Plex Mono', monospace";
-    ctx.fillText(`SEED ${formatSeed(level.seed)}`, VIEW_W / 2, 128);
+    const pack = getActiveSpritePack();
+    ctx.fillText(`SEED ${formatSeed(level.seed)}`, VIEW_W / 2, 124);
+    ctx.fillText(`SPRITES ${pack.model}`, VIEW_W / 2, 140);
 
     const cardW = 160;
     const gap = 18;

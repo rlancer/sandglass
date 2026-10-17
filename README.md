@@ -26,22 +26,20 @@ Or: `bun install && bun run dev`
 
 ## Sprite benchmark
 
-Master prompt (edit this): **[`PROMPT.md`](./PROMPT.md)**  
-Details: [`benchmark/README.md`](./benchmark/README.md)
+Master prompt: **[`PROMPT.md`](./PROMPT.md)** · details: [`benchmark/README.md`](./benchmark/README.md)
 
-**Baseline run:** `openai-gpt-image-1` → model `openai/gpt-image-1` (OpenRouter, 2026-10-17)
+Each model automatically gets `benchmark/models/<model-slug>/` (raw + ready + manifest).
+
+**Baseline:** `openai/gpt-image-1` → `benchmark/models/openai-gpt-image-1/`
 
 ```bash
-# list packs
 bun run sprites:list
 
-# generate a new model pack (needs OPENROUTER_API_KEY in .env)
+# needs OPENROUTER_API_KEY in .env — folder is created from the model id
 bun run sprites:gen -- --model black-forest-labs/flux-3-image
-bun run sprites:process -- --run black-forest-labs-flux-3-image
-bun run sprites:activate -- --run black-forest-labs-flux-3-image
+bun run sprites:process -- --model black-forest-labs/flux-3-image
+bun run sprites:activate -- --model black-forest-labs/flux-3-image
 ```
-
-Each run lives under `benchmark/runs/<run-id>/` with `manifest.json`, `raw/`, and `ready/`. Activating copies `ready/` into `public/sprites/ready/` for the game.
 
 ## Procedural levels
 
