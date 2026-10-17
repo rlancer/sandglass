@@ -1,0 +1,20 @@
+{
+  "name": "sandglass",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "sprites:gen": "bun run scripts/gen-sprites.ts",
+    "sprites:process": "bun run scripts/process-sprites.ts",
+    "sprites:activate": "bun run scripts/activate-sprites.ts",
+    "sprites:list": "bun run scripts/list-runs.ts"
+  },
+  "devDependencies": {
+    "sharp": "^0.35.5",
+    "typescript": "~6.0.2",
+    "vite": "^8.3.0"
+  }
+}

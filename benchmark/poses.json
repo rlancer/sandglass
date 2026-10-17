@@ -1,0 +1,32 @@
+{
+  "prince": [
+    { "file": "prince_run_0.png", "pose": "run cycle contact — RIGHT foot planted, LEFT leg extended back, opposite arm forward, torso leaning slightly forward" },
+    { "file": "prince_run_1.png", "pose": "run cycle mid — RIGHT leg passing under body, LEFT knee driving forward, arms swinging" },
+    { "file": "prince_run_2.png", "pose": "run cycle flight — LEFT foot forward almost landing, RIGHT leg trailing, body airborne slightly" },
+    { "file": "prince_run_3.png", "pose": "run cycle contact — LEFT foot planted, RIGHT leg extended back, opposite arm forward" },
+    { "file": "prince_run_4.png", "pose": "run cycle mid — LEFT leg passing under body, RIGHT knee driving forward" },
+    { "file": "prince_run_5.png", "pose": "run cycle flight — RIGHT foot forward almost landing, LEFT leg trailing, airborne" },
+    { "file": "prince_idle.png", "pose": "relaxed idle standing, weight on one leg, arms loose at sides, calm breathing stance" },
+    { "file": "prince_walk.png", "pose": "careful slow walk mid-step, smaller stride than a run, cautious" },
+    { "file": "prince_crouch.png", "pose": "deep crouch, knees bent, hands near knees, ready" },
+    { "file": "prince_jump.png", "pose": "jumping upward, both knees tucked, arms reaching up" },
+    { "file": "prince_leap.png", "pose": "long forward leap mid-air, legs split front/back, arms forward for balance" },
+    { "file": "prince_fall.png", "pose": "falling downward, legs slightly apart, arms out for balance, concerned expression" },
+    { "file": "prince_land.png", "pose": "landing impact, knees deeply bent, hands forward low, absorbing fall" },
+    { "file": "prince_hang.png", "pose": "hanging from an invisible ledge by both hands above head, body dangling, legs slightly bent" },
+    { "file": "prince_climb.png", "pose": "climbing up over a ledge, one knee on the ledge, pulling torso up with arms" },
+    { "file": "prince_fight.png", "pose": "swordfighting en garde, holding a slim sword forward in RIGHT hand, left hand back, wide stance" },
+    { "file": "prince_strike.png", "pose": "sword strike fully extended — lunging forward, slim sword thrusting to the RIGHT, rear leg stretched" },
+    { "file": "prince_hurt.png", "pose": "stumbling recoil backward, one arm raised, off-balance" },
+    { "file": "prince_die.png", "pose": "collapsed resting on side on the ground, limp, asleep-looking, sword on ground nearby" },
+    { "file": "prince_pickup.png", "pose": "bending down picking up a slim sword from the ground with right hand" }
+  ],
+  "guard": [
+    { "file": "guard_idle.png", "pose": "idle ready stance, sword held low" },
+    { "file": "guard_walk.png", "pose": "walking forward mid-stride with sword" },
+    { "file": "guard_fight.png", "pose": "en garde fight stance, sword raised toward opponent on the right" },
+    { "file": "guard_strike.png", "pose": "powerful sword strike lunging to the RIGHT" },
+    { "file": "guard_hurt.png", "pose": "hurt recoil from a hit" },
+    { "file": "guard_die.png", "pose": "fallen dead on the ground" }
+  ]
+}

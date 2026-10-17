@@ -1,0 +1,25 @@
+[tools]
+bun = "1.4.3"
+
+[env]
+_.path = { path = ["./node_modules/.bin"] }
+
+[tasks.install]
+run = "bun install"
+description = "Install dependencies"
+
+[tasks.dev]
+run = "bun run dev"
+description = "Start Sandglass dev server"
+
+[tasks.build]
+run = "bun run build"
+description = "Build for production"
+
+[tasks.preview]
+run = "bun run preview"
+description = "Preview production build"
+
+[tasks.sprites-list]
+run = "bun run sprites:list"
+description = "List benchmark sprite runs"
