@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PRINCE OF PERSIA: THE ASTRAL HOURGLASS (1989 Reimagined)</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700;900&family=Cinzel:wght@600;700;800&family=Cormorant+Garamond:ital,wght@0,600;1,600&family=JetBrains+Mono:wght@500;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body>
+    <div id="app-shell" class="app-shell">
+      <!-- Top Astrolabe Header Bar -->
+      <header class="astrolabe-header">
+        <div class="brand-cluster">
+          <span class="crest-diamond" aria-hidden="true">◆</span>
+          <div>
+            <h1 class="game-title">PRINCE OF PERSIA</h1>
+            <p class="game-subtitle">THE ASTRAL HOURGLASS · 1989 REIMAGINED</p>
+          </div>
+        </div>
+
+        <div class="room-indicator" id="room-indicator">
+          <span class="room-sector" id="room-sector">SECTOR I · DUNGEON CELLS</span>
+          <span class="room-title" id="room-title">Room 1 · The Prisoner's Drop</span>
+        </div>
+
+        <div class="toolbar-controls">
+          <button id="btn-story" class="bezel-btn" title="View Prologue & Jaffar's Ultimatum">
+            <span>Prologue</span>
+          </button>
+          <button id="btn-map" class="bezel-btn" title="Palace Blueprint & Room Warp (M)">
+            <span>Palace Map</span>
+            <kbd>M</kbd>
+          </button>
+          <button id="btn-editor" class="bezel-btn" title="Interactive Room & Trap Editor (L)">
+            <span>Architect</span>
+            <kbd>L</kbd>
+          </button>
+          <button id="btn-visual-mode" class="bezel-btn" title="Cycle Visual Renderer (V)">
+            <span id="visual-mode-label">Mode: Illuminated VGA</span>
+            <kbd>V</kbd>
+          </button>
+          <button id="btn-audio" class="bezel-btn active" title="Toggle Persian FM Synth & SFX (N)">
+            <span id="audio-label">Audio: ON</span>
+          </button>
+          <button id="btn-restart-room" class="bezel-btn" title="Restart Current Room (K)">
+            <span>Retry Room</span>
+            <kbd>K</kbd>
+          </button>
+        </div>
+      </header>
+
+      <!-- Main Stage Container -->
+      <main class="stage-layout">
+        <section class="viewport-frame" id="viewport-frame">
+          <!-- Ornate Corner Brass Brackets -->
+          <div class="corner-ornament tl"></div>
+          <div class="corner-ornament tr"></div>
+          <div class="corner-ornament bl"></div>
+          <div class="corner-ornament br"></div>
+
+          <div class="canvas-wrapper">
+            <canvas id="game-canvas" width="960" height="576" tabindex="0"></canvas>
+            <div id="crt-overlay" class="crt-overlay"></div>
+
+            <!-- Title / Attract / Prologue Modal Overlay -->
+            <div id="title-overlay" class="title-overlay">
+              <div class="title-card">
+                <div class="title-art-column">
+                  <img
+                    id="title-mural-img"
+                    src="/assets/title-mural.png"
+                    alt="Prince leaping across dungeon spikes beneath the Astral Hourglass"
+                    class="title-mural"
+                  />
+                  <div class="vignette-switcher">
+                    <button class="vignette-tab active" data-art="/assets/title-mural.png" data-caption="I. Captured in the Sultan's Dungeon beneath Khorasan.">I. The Leap</button>
+                    <button class="vignette-tab" data-art="/assets/jaffar-portrait.png" data-caption="II. In the Sultan's absence, Grand Vizier Jaffar rules with the iron fist of tyranny.">II. Vizier Jaffar</button>
+                    <button class="vignette-tab" data-art="/assets/princess-chamber.png" data-caption="III. The Princess has one hour before the Astral Hourglass runs dry.">III. The Hourglass</button>
+                  </div>
+                </div>
+                <div class="title-copy-column">
+                  <div class="eyebrow-badge">JORDAN MECHNER 1989 HOMAGE · CELESTIAL EDITION</div>
+                  <h2 class="overlay-headline">THE ASTRAL HOURGLASS</h2>
+                  <p class="overlay-lore" id="prologue-caption">
+                    In the Sultan's absence, Grand Vizier Jaffar has seized the throne and locked the palace inside an Astral Time-Loop. Armed with a shard of the Magic Mirror, you must master deliberate rotoscoped acrobatics, steel duels, and your own Shadow Twin before the sands expire.
+                  </p>
+
+                  <div class="feature-pillars">
+                    <div class="pillar-item">
+                      <strong>1989 Kinematics</strong>
+                      <span>Careful tiptoe steps, running leaps, ledge hangs, loose floors, chompers &amp; parrying duels.</span>
+                    </div>
+                    <div class="pillar-item">
+                      <strong>Shadow Twin <code>[E]</code> &amp; Swap <code>[Q]</code></strong>
+                      <span>Manifest a spectral echo that replays your last 5 seconds—hold down gate plates, trigger traps, or swap bodies mid-flight.</span>
+                    </div>
+                    <div class="pillar-item">
+                      <strong>Rewind Sand <code>[Hold R]</code></strong>
+                      <span>Reverse death, spikes, or missed parries by rewinding the palace timeline.</span>
+                    </div>
+                  </div>
+
+                  <div class="title-actions">
+                    <button id="btn-start-game" class="primary-gold-btn">
+                      ENTER THE DUNGEON
+                    </button>
+                    <button id="btn-start-combat-arena" class="secondary-teal-btn">
+                      SWORD DUEL PRACTICE
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Palace Map Modal -->
+            <div id="map-overlay" class="modal-overlay hidden">
+              <div class="modal-panel">
+                <div class="modal-header">
+                  <h3>THE SULTAN'S PALACE · ARCHITECTURAL BLUEPRINT</h3>
+                  <button id="btn-close-map" class="bezel-btn">Close [Esc]</button>
+                </div>
+                <p class="modal-sub">Click any chamber to warp directly and test your skill or inspect traps.</p>
+                <div id="map-grid" class="map-grid"></div>
+              </div>
+            </div>
+
+            <!-- Level Editor Toolbar Overlay -->
+            <div id="editor-bar" class="editor-bar hidden">
+              <div class="editor-bar-top">
+                <span class="editor-badge">PALACE ARCHITECT MODE</span>
+                <div class="editor-palette" id="editor-palette"></div>
+                <div class="editor-actions">
+                  <button id="btn-editor-add-guard" class="bezel-btn">+ Toggle Guard</button>
+                  <button id="btn-editor-reset" class="bezel-btn">Reset Room</button>
+                  <button id="btn-editor-close" class="bezel-btn active">Done [L]</button>
+                </div>
+              </div>
+              <div class="editor-hint">
+                Left-click a tile on the 10×3 grid to place selected element · Right-click to clear to empty air · Plates automatically link to gates in the same room.
+              </div>
+            </div>
+          </div>
+
+          <!-- Classic 1989 Bottom Status Strip -->
+          <footer class="status-strip-1989">
+            <div class="hud-wing hud-left">
+              <span class="hud-label">PRINCE</span>
+              <div id="prince-hearts" class="triangles-row" aria-label="Prince Health"></div>
+              <div class="astral-meters">
+                <div class="sand-pill" title="Hourglass Rewind Sand [Hold R]">
+                  <span class="sand-label">SAND</span>
+                  <div class="sand-bar-track">
+                    <div id="sand-bar-fill" class="sand-bar-fill" style="width: 100%"></div>
+                  </div>
+                </div>
+                <div id="shadow-status-pill" class="shadow-pill ready">
+                  SHADOW [E]: READY
+                </div>
+              </div>
+            </div>
+
+            <div class="hud-center">
+              <div id="hud-banner-text" class="hud-banner-text">
+                60 MINUTES LEFT · HOLD SHIFT TO STEP CAREFULLY OR GRAB LEDGES
+              </div>
+            </div>
+
+            <div class="hud-wing hud-right">
+              <div id="enemy-hud-box" class="enemy-hud-box hidden">
+                <span id="enemy-hud-name" class="hud-label">PALACE GUARD</span>
+                <div id="enemy-hearts" class="triangles-row enemy-row"></div>
+              </div>
+              <div id="timer-hud-box" class="timer-hud-box">
+                <span class="hud-label">HOURGLASS</span>
+                <span id="hourglass-timer" class="hourglass-timer">60:00</span>
+              </div>
+            </div>
+          </footer>
+        </section>
+
+        <!-- Compact Side Reference / Controls & Telemetry -->
+        <aside class="tactical-sidebar">
+          <div class="sidebar-card">
+            <h2 class="sidebar-heading">ROTOSCOPED CONTROLS</h2>
+            <ul class="control-list">
+              <li>
+                <span class="key-combo"><kbd>←</kbd> <kbd>→</kbd> / <kbd>A</kbd> <kbd>D</kbd></span>
+                <span class="key-desc">Run / Combat Advance &amp; Retreat</span>
+              </li>
+              <li>
+                <span class="key-combo"><kbd>Shift</kbd> + <kbd>←</kbd><kbd>→</kbd></span>
+                <span class="key-desc"><strong>Careful Step</strong> (walk through spikes &amp; test edges)</span>
+              </li>
+              <li>
+                <span class="key-combo"><kbd>↑</kbd> / <kbd>W</kbd></span>
+                <span class="key-desc">Standing Jump / Run-Jump / Climb Up / <strong>Parry</strong></span>
+              </li>
+              <li>
+                <span class="key-combo"><kbd>↓</kbd> / <kbd>S</kbd></span>
+                <span class="key-desc">Crouch / Climb Down Ledge / Sheathe Sword</span>
+              </li>
+              <li>
+                <span class="key-combo"><kbd>Shift</kbd> / <kbd>Space</kbd></span>
+                <span class="key-desc"><strong>Grab Ledge</strong> / Drink Potion / <strong>Sword Strike</strong></span>
+              </li>
+              <li class="highlight-control">
+                <span class="key-combo"><kbd>E</kbd> then <kbd>Q</kbd></span>
+                <span class="key-desc"><strong>Shadow Twin</strong> (spawn 5s echo; <kbd>Q</kbd> swaps bodies)</span>
+              </li>
+              <li class="highlight-control">
+                <span class="key-combo">Hold <kbd>R</kbd></span>
+                <span class="key-desc"><strong>Rewind Time</strong> (reverse traps &amp; fate)</span>
+              </li>
+            </ul>
+          </div>
+
+          <div class="sidebar-card chamber-notes-card">
+            <div class="chamber-header-row">
+              <h2 class="sidebar-heading">CHAMBER CHRONICLE</h2>
+              <span id="kinematic-state-badge" class="state-badge">STATE: IDLE</span>
+            </div>
+            <p id="chamber-lore-text" class="chamber-lore-text">
+              Thrown into the dank subterranean cisterns. Watch for loose limestone slabs—step on them to drop them onto pressure plates below, or hold Shift while falling past a ledge to catch yourself.
+            </p>
+            <div class="quick-room-jumps">
+              <span class="quick-label">FEATURED CHAMBERS:</span>
+              <div class="quick-btn-grid">
+                <button class="mini-warp-btn" data-room="0">1. Dungeon Drop</button>
+                <button class="mini-warp-btn" data-room="2">3. Guard &amp; Gate</button>
+                <button class="mini-warp-btn" data-room="4">5. Shadow Puzzle</button>
+                <button class="mini-warp-btn" data-room="6">7. Jaws of Steel</button>
+                <button class="mini-warp-btn" data-room="8">9. Magic Mirror</button>
+                <button class="mini-warp-btn" data-room="10">11. Vizier Jaffar</button>
+              </div>
+            </div>
+          </div>
+        </aside>
+      </main>
+    </div>
+
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>

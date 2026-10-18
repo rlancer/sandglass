@@ -1,0 +1,15 @@
+{
+  "name": "prince-of-persia-astral-hourglass",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "bunx --bun vite --port 5189",
+    "build": "bunx --bun vite build",
+    "preview": "bunx --bun vite preview --port 5189",
+    "generate:art": "bun run scripts/generate-assets.mjs"
+  },
+  "devDependencies": {
+    "vite": "^6.2.0"
+  }
+}

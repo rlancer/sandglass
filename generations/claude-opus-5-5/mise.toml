@@ -1,0 +1,12 @@
+[tools]
+bun = "1.4.3"
+
+[tasks.dev]
+run = "bun run dev"
+
+[tasks.build]
+run = "bun run build"
+
+[tasks.art]
+description = "Regenerate AI artwork via OpenRouter"
+run = "bun scripts/gen-art.js"
