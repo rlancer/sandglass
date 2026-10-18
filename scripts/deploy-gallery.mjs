@@ -36,4 +36,5 @@ if (!existsSync(join(deployDir, "node_modules", "cf"))) {
   if (code !== 0) process.exit(code);
 }
 
-process.exit(run("bunx", ["cf", "deploy"], deployDir));
+const mode = process.argv[2] === "staging" ? "staging" : "production";
+process.exit(run("bunx", ["cf", "deploy", "--mode", mode], deployDir));

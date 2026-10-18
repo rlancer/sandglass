@@ -4,7 +4,8 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "deploy": "cf deploy"
+    "deploy": "cf deploy --mode production",
+    "deploy:staging": "cf deploy --mode staging"
   },
   "devDependencies": {
     "cf": "1.0.0-beta.18",
