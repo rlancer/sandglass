@@ -690,7 +690,7 @@ export class Renderer {
   drawActor(ctx, a, styleKey, opts = {}) {
     const pose = samplePose(a.anim, a.animT);
     const st = STYLES[styleKey];
-    let o = { sword: opts.sword, alpha: a.alpha ?? 1 };
+    let o = { sword: opts.sword, alpha: a.alpha ?? 1, grip: a.gripInfo?.() };
     if (opts.silhouette) Object.assign(o, { silhouette: true, glow: opts.glow, eye: opts.eye });
     if (a.flash > 0 && Math.floor(a.flash * 30) % 2 === 0) o.alpha = (o.alpha ?? 1) * 0.5;
     drawFigure(ctx, a.x, a.y, a.facing, pose, st, o);
@@ -698,7 +698,7 @@ export class Renderer {
 
   drawShadow(ctx, f, alpha) {
     const pose = samplePose(f.anim, f.animT);
-    drawFigure(ctx, f.x, f.y, f.facing, pose, STYLES.prince, { silhouette: true, alpha, sword: f.sword });
+    drawFigure(ctx, f.x, f.y, f.facing, pose, STYLES.prince, { silhouette: true, alpha, sword: f.sword, grip: f.grip });
   }
 
   // ---------- lighting ----------
@@ -788,11 +788,11 @@ export class Renderer {
     if (e.rewindFrame) {
       const f = e.rewindFrame;
       const pose = samplePose(f.anim, f.animT);
-      drawFigure(ctx, f.x, f.y, f.facing, pose, STYLES.prince, { sword: f.sword, alpha: 0.85 });
+      drawFigure(ctx, f.x, f.y, f.facing, pose, STYLES.prince, { sword: f.sword, alpha: 0.85, grip: f.grip });
       // ghostly afterimages of the path being unwound
       for (let k = 1; k <= 3; k++) {
         const g = e.frames[Math.min(e.frames.length - 1, Math.floor(e.idx + k * e.rate * 4))];
-        if (g) drawFigure(ctx, g.x, g.y, g.facing, samplePose(g.anim, g.animT), STYLES.prince, { silhouette: true, glow: "rgba(255,200,100,0.9)", eye: "#fd8", alpha: 0.35 / k });
+        if (g) drawFigure(ctx, g.x, g.y, g.facing, samplePose(g.anim, g.animT), STYLES.prince, { silhouette: true, glow: "rgba(255,200,100,0.9)", eye: "#fd8", alpha: 0.35 / k, grip: g.grip });
       }
     } else {
       this.drawActor(ctx, p, "prince", { sword: p.swordOut });

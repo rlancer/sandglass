@@ -5,10 +5,13 @@ import {
 import { Actor, rowOf, colOf } from "./actor.js";
 import { sfx } from "./audio.js";
 import { particles } from "./particles.js";
-import { ANIMS } from "./skeleton.js";
+import { ANIMS, sampleKeys } from "./skeleton.js";
 
 const GROUND = new Set(["stand", "run", "walk", "skid", "crouch"]);
-const HANG_DROP = 72; // feet below the ledge surface while hanging
+const HANG_DROP = 70; // feet below the ledge surface while hanging
+const HANG_BACK = 9; // body distance out from the ledge corner while hanging
+// Feet relative to the ledge corner [towards ledge, below surface], one key per climb frame.
+const CLIMB_PATH = [[-HANG_BACK, HANG_DROP], [-7, 48], [-1, 25], [10, 0], [14, 0]];
 
 export class Player extends Actor {
   constructor(world, x, y, game) {
@@ -36,8 +39,19 @@ export class Player extends Actor {
   snapshot() {
     return {
       x: this.x, y: this.y, facing: this.facing, anim: this.anim, animT: this.animT,
-      sword: this.swordOut, ground: this.onGround && this.grounded,
+      sword: this.swordOut, ground: this.onGround && this.grounded, grip: this.gripInfo(),
     };
+  }
+
+  // Ledge corner the hands are pinned to, with blend weight (released mid-mantle).
+  gripInfo() {
+    const l = this.ledge;
+    if (!l) return null;
+    let w;
+    if (this.state === "hang" || this.state === "jumpUp") w = 1;
+    else if (this.state === "climb" || this.state === "climbDown") w = Math.max(0, Math.min(1, (0.64 - this.animT) / 0.08));
+    else return null;
+    return { x: l.X, y: l.surf, w };
   }
 
   restoreFrom(f) {
@@ -153,7 +167,7 @@ export class Player extends Actor {
   }
 
   hangPos(l) {
-    return { x: l.X - l.facing * 9, y: l.surf + HANG_DROP };
+    return { x: l.X - l.facing * HANG_BACK, y: l.surf + HANG_DROP };
   }
 
   // ---------- main update ----------
@@ -217,15 +231,14 @@ export class Player extends Actor {
       }
       case "climb": case "climbDown": {
         const l = this.ledge;
-        const dur = this.state === "climb" ? 0.72 : 0.55;
+        const dur = this.state === "climb" ? 0.85 : 0.7;
         let p = Math.min(1, this.stateT / dur);
-        const hp = this.hangPos(l);
-        const top = { x: l.X + l.facing * 14, y: l.surf };
+        const end = CLIMB_PATH[CLIMB_PATH.length - 1];
+        const top = { x: l.X + l.facing * end[0], y: l.surf + end[1] };
         const q = this.state === "climb" ? p : 1 - p;
-        // rise first, then roll forward onto the ledge
-        const ry = Math.min(1, q / 0.55), rx = Math.max(0, (q - 0.4) / 0.6);
-        this.y = hp.y + (top.y - hp.y) * (1 - (1 - ry) * (1 - ry));
-        this.x = hp.x + (top.x - hp.x) * rx;
+        const [ox, oy] = sampleKeys(CLIMB_PATH, q);
+        this.x = l.X + l.facing * ox;
+        this.y = l.surf + oy;
         this.animT = q;
         this.anim = "climb";
         if (p >= 1) {
