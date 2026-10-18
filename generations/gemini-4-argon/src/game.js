@@ -25,9 +25,10 @@ export class PrinceGame {
       princess: new Image(),
       jaffar: new Image()
     };
-    this.bgImages.palace.src = '/assets/palace-bg.png';
-    this.bgImages.princess.src = '/assets/princess-chamber.png';
-    this.bgImages.jaffar.src = '/assets/jaffar-portrait.png';
+    const base = import.meta.env.BASE_URL;
+    this.bgImages.palace.src = `${base}assets/palace-bg.png`;
+    this.bgImages.princess.src = `${base}assets/princess-chamber.png`;
+    this.bgImages.jaffar.src = `${base}assets/jaffar-portrait.png`;
 
     this.visualModes = ['illuminated', 'vga1989', 'monochrome'];
     this.visualModeIndex = 0;

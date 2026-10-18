@@ -7,6 +7,8 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
+    "gallery:build": "bun run scripts/build-gallery.mjs",
+    "gallery:deploy": "bun run gallery:build && bun run scripts/deploy-gallery.mjs",
     "sprites:gen": "bun run scripts/gen-sprites.ts",
     "sprites:process": "bun run scripts/process-sprites.ts",
     "sprites:activate": "bun run scripts/activate-sprites.ts",

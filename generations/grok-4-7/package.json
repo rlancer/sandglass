@@ -1,0 +1,14 @@
+{
+  "name": "hoursplit",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1 --port 5182 --strictPort",
+    "build": "vite build",
+    "preview": "vite preview --host 127.0.0.1 --port 5182 --strictPort",
+    "art": "bun scripts/gen-art.js"
+  },
+  "devDependencies": {
+    "vite": "^7.1.9"
+  }
+}

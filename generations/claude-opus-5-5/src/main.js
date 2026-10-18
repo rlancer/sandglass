@@ -9,11 +9,12 @@ import { drawFigure, samplePose, STYLES } from "./skeleton.js";
 const SAVE_KEY = "pop-mirror-of-shadows";
 const DEBUG = new URLSearchParams(location.search).has("debug");
 
+const BASE = import.meta.env.BASE_URL;
 const art = {};
 async function loadArt() {
   let manifest = {};
   try {
-    manifest = await (await fetch("/art/manifest.json")).json();
+    manifest = await (await fetch(`${BASE}art/manifest.json`)).json();
   } catch {}
   await Promise.all(
     Object.entries(manifest).map(
@@ -25,7 +26,7 @@ async function loadArt() {
             res();
           };
           img.onerror = res;
-          img.src = `/art/${name}.${ext}`;
+          img.src = `${BASE}art/${name}.${ext}`;
         }),
     ),
   );

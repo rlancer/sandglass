@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Hoursplit</title>
+    <link rel="icon" href="/favicon.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,opsz,wght@0,6..96,500;0,6..96,600;1,6..96,500&family=Sora:wght@300;400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body>
+    <div id="frame" tabindex="0">
+      <canvas id="view" width="960" height="540" aria-label="Hoursplit, the palace of Azemar"></canvas>
+      <div id="veil" data-on="true" data-dim="soft"></div>
+
+      <section id="title" data-screen="title">
+        <p class="where">Palace of Azemar</p>
+        <h1><span>Hour</span><i></i><span>split</span></h1>
+        <p class="lede">The same stones. Two hours. One measure of sand.</p>
+        <button type="button" id="start">Enter the palace</button>
+        <p class="best" id="best"></p>
+        <p class="keys">Arrows move · Space jump · ↑ climb · ↓ take · X strike · Z parry · F the other hour</p>
+      </section>
+
+      <section id="story" data-screen="story" hidden>
+        <figure>
+          <img id="story-img" alt="" />
+        </figure>
+        <div class="copy">
+          <p class="where" id="story-kicker"></p>
+          <p id="story-copy"></p>
+          <button type="button" id="story-next">Continue</button>
+        </div>
+      </section>
+
+      <section id="pause" data-screen="pause" hidden>
+        <div class="panel">
+          <p class="where">Paused</p>
+          <h2>The sand waits.</h2>
+          <dl>
+            <dt>Arrows</dt><dd>Run</dd>
+            <dt>Space</dt><dd>Jump</dd>
+            <dt>↑</dt><dd>Catch a ledge, or leave upward</dd>
+            <dt>↓</dt><dd>Take what is here, or drop</dd>
+            <dt>X</dt><dd>Strike</dd>
+            <dt>Z</dt><dd>Parry</dd>
+            <dt>C</dt><dd>Sheathe, and run</dd>
+            <dt>F</dt><dd>Step into the other hour</dd>
+          </dl>
+          <button type="button" id="resume">Resume</button>
+          <button type="button" id="leave" class="quiet">Leave the palace</button>
+        </div>
+      </section>
+
+      <section id="fail" data-screen="fail over" hidden>
+        <div class="panel">
+          <p class="where" id="fail-kicker">Fallen</p>
+          <h2 id="fail-title">This hall remains.</h2>
+          <p id="fail-copy"></p>
+          <button type="button" id="retry">Try this hall again</button>
+          <button type="button" id="abandon" class="quiet">Leave the palace</button>
+        </div>
+      </section>
+
+      <section id="ending" data-screen="ending" hidden>
+        <div class="panel">
+          <p class="where">Dawn</p>
+          <h2>The hours met.</h2>
+          <p id="ending-copy">The tower doors remembered how to open.</p>
+          <p id="ending-sand" class="keys"></p>
+          <button type="button" id="again">Walk it again</button>
+        </div>
+      </section>
+
+      <div class="pad" id="pad">
+        <button type="button" data-hold="left">Left</button>
+        <button type="button" data-hold="right">Right</button>
+        <button type="button" data-tap="jump">Jump</button>
+        <button type="button" data-tap="up">Up</button>
+        <button type="button" data-hold="down">Down</button>
+        <button type="button" data-tap="strike">Strike</button>
+        <button type="button" data-tap="parry">Parry</button>
+        <button type="button" data-tap="phase">Hour</button>
+      </div>
+    </div>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>

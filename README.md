@@ -53,6 +53,16 @@ Same PoP ’89 creative brief, different agent models — archived under [`gener
 |------|--------|
 | _(this root)_ | Composer (Sandglass) |
 | `generations/gemini-4-argon/` | Gemini 4 Argon |
+| `generations/grok-4-7/` | Grok 4.7 |
 | `generations/claude-opus-5-5/` | Claude Opus 5.5 |
 
 Each folder is a standalone Vite app: `cd` in, `bun install`, `bun run dev`.
+
+## Gallery site
+
+Hub page with the shared brief and links to every playable build:
+
+```bash
+bun run gallery:build    # → site-dist/
+bun run gallery:deploy   # Cloudflare Pages via `cf` (not Wrangler)
+```
