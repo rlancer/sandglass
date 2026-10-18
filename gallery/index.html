@@ -19,11 +19,11 @@
   <body>
     <div class="grain" aria-hidden="true"></div>
     <header class="hero">
-      <p class="eyebrow">Cursor harness · same brief · different models</p>
+      <p class="eyebrow">One brief · four models · from scratch</p>
       <h1>Sandglass</h1>
       <p class="lede">
-        Four from-scratch takes on the original <em>Prince of Persia</em> (1989).
-        Pick a generation and play.
+        Homages to the original <em>Prince of Persia</em> (1989), each built by a
+        different agent from the same starting prompt. Choose one and play.
       </p>
     </header>
 
@@ -33,15 +33,15 @@
         <button type="button" class="copy" id="copy-prompt">Copy</button>
       </div>
       <blockquote id="brief">
-        make a variation of the original prince of persia 1989 video game, be
-        creative, show off what you can do, up to you if you want to use web or
-        not, you can use mise to manage the project dependencies, if you want
-        image gen api let me know and i can give you an open router key
+        Make a variation of the original <em>Prince of Persia</em> (1989). Be
+        creative—show what you can do. Use the web if it helps. You may manage
+        dependencies with mise. If you want an image-generation API, ask and
+        I’ll give you an OpenRouter key.
       </blockquote>
       <p class="prompt-note">
-        Eval shells also pointed models at <code>.env</code> /
-        <code>OPENROUTER_API_KEY</code> and a fixed <code>DEV_PORT</code> so
-        parallel runs wouldn’t collide.
+        Each run started in an empty folder with an OpenRouter key in
+        <code>.env</code> and its own fixed dev port, so the models could work
+        in parallel without stepping on each other.
       </p>
     </section>
 
