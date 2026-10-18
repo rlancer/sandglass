@@ -17,6 +17,7 @@ const cache = new Map<string, Sheet>();
 let bootstrapped = false;
 let activeSlug = "openai-gpt-image-1";
 let activeModel = "openai/gpt-image-1";
+const BASE = import.meta.env.BASE_URL;
 
 function load(path: string): Sheet {
   const existing = cache.get(path);
@@ -35,8 +36,8 @@ function load(path: string): Sheet {
 }
 
 function spriteUrl(name: string): string {
-  // Prefer model-scoped path; fall back to legacy /sprites/ready/
-  return `/sprites/models/${activeSlug}/${name}.png`;
+  // Prefer model-scoped path; fall back to legacy sprites/ready/
+  return `${BASE}sprites/models/${activeSlug}/${name}.png`;
 }
 
 const SPRITE_NAMES = [
@@ -73,7 +74,7 @@ export function preloadSprites() {
   if (bootstrapped) return;
   bootstrapped = true;
 
-  void fetch("/sprites/active.json")
+  void fetch(`${BASE}sprites/active.json`)
     .then((r) => (r.ok ? r.json() : null))
     .then((j: ActivePack | null) => {
       if (j?.slug) {
@@ -156,7 +157,10 @@ function drawSheet(
   const sheet = load(path);
   // Also try legacy path once if model path missing
   if (!sheet.ready) {
-    const legacy = path.replace(`/sprites/models/${activeSlug}/`, "/sprites/ready/");
+    const legacy = path.replace(
+      `${BASE}sprites/models/${activeSlug}/`,
+      `${BASE}sprites/ready/`,
+    );
     if (legacy !== path) {
       const alt = load(legacy);
       if (!alt.ready) return false;

@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Sandglass — PoP ’89 model generations</title>
+    <meta
+      name="description"
+      content="One creative brief. Four agent models. Play each Prince of Persia 1989 homage."
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,800&family=IBM+Plex+Mono:wght@400;500&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="grain" aria-hidden="true"></div>
+    <header class="hero">
+      <p class="eyebrow">Cursor harness · same brief · different models</p>
+      <h1>Sandglass</h1>
+      <p class="lede">
+        Four from-scratch takes on the original <em>Prince of Persia</em> (1989).
+        Pick a generation and play.
+      </p>
+    </header>
+
+    <section class="prompt" aria-labelledby="prompt-heading">
+      <div class="prompt-head">
+        <h2 id="prompt-heading">The brief</h2>
+        <button type="button" class="copy" id="copy-prompt">Copy</button>
+      </div>
+      <blockquote id="brief">
+        make a variation of the original prince of persia 1989 video game, be
+        creative, show off what you can do, up to you if you want to use web or
+        not, you can use mise to manage the project dependencies, if you want
+        image gen api let me know and i can give you an open router key
+      </blockquote>
+      <p class="prompt-note">
+        Eval shells also pointed models at <code>.env</code> /
+        <code>OPENROUTER_API_KEY</code> and a fixed <code>DEV_PORT</code> so
+        parallel runs wouldn’t collide.
+      </p>
+    </section>
+
+    <section class="gens" aria-labelledby="gens-heading">
+      <h2 id="gens-heading">Generations</h2>
+      <ul class="cards">
+        <li>
+          <a class="card" href="./composer/">
+            <span class="card-model">Composer</span>
+            <span class="card-title">Sandglass</span>
+            <span class="card-meta">Baseline · repo root</span>
+            <span class="card-go">Play →</span>
+          </a>
+        </li>
+        <li>
+          <a class="card" href="./gemini-4-argon/">
+            <span class="card-model">Gemini 4 Argon</span>
+            <span class="card-title">Astral Hourglass</span>
+            <span class="card-meta">generations/gemini-4-argon</span>
+            <span class="card-go">Play →</span>
+          </a>
+        </li>
+        <li>
+          <a class="card" href="./grok-4-7/">
+            <span class="card-model">Grok 4.7</span>
+            <span class="card-title">Hoursplit</span>
+            <span class="card-meta">generations/grok-4-7</span>
+            <span class="card-go">Play →</span>
+          </a>
+        </li>
+        <li>
+          <a class="card" href="./claude-opus-5-5/">
+            <span class="card-model">Claude Opus 5.5</span>
+            <span class="card-title">Mirror of Shadows</span>
+            <span class="card-meta">generations/claude-opus-5-5</span>
+            <span class="card-go">Play →</span>
+          </a>
+        </li>
+      </ul>
+    </section>
+
+    <footer class="foot">
+      <p>
+        Source on GitHub ·
+        <a href="https://github.com/rlancer/sandglass">rlancer/sandglass</a>
+      </p>
+    </footer>
+
+    <script>
+      const btn = document.getElementById("copy-prompt");
+      const brief = document.getElementById("brief");
+      btn?.addEventListener("click", async () => {
+        const text = brief?.textContent?.replace(/\s+/g, " ").trim() ?? "";
+        try {
+          await navigator.clipboard.writeText(text);
+          btn.textContent = "Copied";
+          setTimeout(() => (btn.textContent = "Copy"), 1600);
+        } catch {
+          btn.textContent = "Select & copy";
+        }
+      });
+    </script>
+  </body>
+</html>

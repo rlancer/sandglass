@@ -93,7 +93,8 @@ document.querySelectorAll('.vignette-tab').forEach(tab => {
   tab.addEventListener('click', () => {
     document.querySelectorAll('.vignette-tab').forEach(t => t.classList.remove('active'));
     tab.classList.add('active');
-    titleMuralImg.src = tab.dataset.art;
+    const artPath = tab.dataset.art.replace(/^\//, "");
+    titleMuralImg.src = `${import.meta.env.BASE_URL}${artPath}`;
     prologueCaption.textContent = tab.dataset.caption;
   });
 });
