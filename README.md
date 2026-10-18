@@ -44,3 +44,15 @@ bun run sprites:activate -- --model black-forest-labs/flux-3-image
 ## Procedural levels
 
 Each campaign seed builds 3 tiers (~6 / ~9 / ~11 rooms). Press **R** on the title screen for a new seed.
+
+## Model generations
+
+Same PoP ’89 creative brief, different agent models — archived under [`generations/`](./generations/):
+
+| Path | Model |
+|------|--------|
+| _(this root)_ | Composer (Sandglass) |
+| `generations/gemini-4-argon/` | Gemini 4 Argon |
+| `generations/claude-opus-5-5/` | Claude Opus 5.5 |
+
+Each folder is a standalone Vite app: `cd` in, `bun install`, `bun run dev`.
