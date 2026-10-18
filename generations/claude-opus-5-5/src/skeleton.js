@@ -1,6 +1,6 @@
 // Procedural "rotoscope" figures: keyframed joint angles, smooth interpolation,
 // forward kinematics, automatic foot planting.
-const THIGH = 16, SHIN = 16, TORSO = 20, UPPER = 11, FORE = 11, HEAD = 6;
+const THIGH = 16, SHIN = 16, TORSO = 20, UPPER = 11, FORE = 11, HEAD = 4.8;
 
 const BASE = { hx: 0, hy: 0, lean: 0.05, hd: 0, lh: -0.08, lk: 0.08, rh: 0.1, rk: 0.06, la: -0.12, le: 0.25, ra: 0.12, re: 0.3, sw: 0, rot: 0, air: 0 };
 const P = (o) => ({ ...BASE, ...o });
@@ -32,7 +32,7 @@ export const ANIMS = {
     dur: 1,
   },
   jumpUp: {
-    frames: [P({ air: 1, lean: -0.05, rh: 0.1, lh: -0.1, ra: 3.0, re: 0.05, la: 2.9, le: 0.05 })],
+    frames: [P({ air: 1, lean: 0.08, rh: 0.15, rk: 0.2, lh: -0.1, lk: 0.35, ra: 3.0, re: 0.05, la: 2.9, le: 0.05 })],
     dur: 1,
   },
   fall: {
@@ -44,16 +44,18 @@ export const ANIMS = {
     dur: 0.35,
   },
   hang: {
-    frames: [P({ air: 1, lean: -0.08, hd: -0.1, rh: 0.12, rk: 0.15, lh: -0.1, lk: 0.25, ra: 3.05, re: 0.0, la: 3.0, le: 0.05 }), P({ air: 1, lean: -0.05, hd: -0.1, rh: 0.05, rk: 0.25, lh: -0.02, lk: 0.15, ra: 3.05, re: 0.0, la: 3.0, le: 0.05 })],
+    frames: [P({ air: 1, lean: 0.12, hd: -0.12, rh: 0.14, rk: 0.18, lh: -0.08, lk: 0.28, ra: 3.05, re: 0.0, la: 3.0, le: 0.05 }), P({ air: 1, lean: 0.1, hd: -0.12, rh: 0.04, rk: 0.28, lh: 0.0, lk: 0.16, ra: 3.05, re: 0.0, la: 3.0, le: 0.05 })],
     loop: true,
     dur: 2.4,
   },
+  // Evenly spaced keys; CLIMB_PATH (player.js) moves the body in step with them
+  // so the planted hands stay within reach of the ledge corner.
   climb: {
     frames: [
-      P({ air: 1, lean: -0.05, rh: 0.1, rk: 0.1, lh: -0.1, lk: 0.2, ra: 3.05, re: 0.0, la: 3.0, le: 0.05 }),
-      P({ air: 1, lean: 0.2, rh: 0.9, rk: 1.6, lh: 0.5, lk: 1.2, ra: 2.2, re: 1.9, la: 2.1, le: 2.0 }),
-      P({ air: 1, lean: 0.6, rh: 1.6, rk: 2.4, lh: 0.4, lk: 1.6, ra: 1.0, re: 0.6, la: 0.9, le: 0.6 }),
-      P({ lean: 0.35, rh: 0.9, rk: 1.6, lh: 0.3, lk: 1.3, ra: 0.5, re: 0.5, la: 0.3, le: 0.5 }),
+      P({ air: 1, lean: 0.12, hd: -0.12, rh: 0.1, rk: 0.2, lh: -0.08, lk: 0.25, ra: 3.05, re: 0.0, la: 3.0, le: 0.05 }),
+      P({ air: 1, lean: 0.18, hd: 0.1, rh: 0.5, rk: 0.9, lh: 0.15, lk: 0.6, ra: 2.4, re: 1.8, la: 2.3, le: 1.9 }),
+      P({ air: 1, lean: 0.75, hd: 0.25, rh: 1.45, rk: 2.75, lh: -0.1, lk: 0.7, ra: 1.2, re: 0.6, la: 1.1, le: 0.6 }),
+      P({ lean: 0.5, hd: 0.15, rh: 1.2, rk: 2.3, lh: 0.7, lk: 2.0, ra: 0.7, re: 0.5, la: 0.5, le: 0.6 }),
       P({}),
     ],
     dur: 1,
@@ -125,7 +127,7 @@ export function solve(p) {
   const neck = [hip[0] + tl[0] * TORSO, hip[1] + tl[1] * TORSO];
   const shoulder = [hip[0] + tl[0] * (TORSO - 3), hip[1] + tl[1] * (TORSO - 3)];
   const ha = p.lean + p.hd;
-  const head = [neck[0] + Math.sin(ha) * (HEAD + 2), neck[1] - Math.cos(ha) * (HEAD + 2)];
+  const head = [neck[0] + Math.sin(ha) * (HEAD + 1.6), neck[1] - Math.cos(ha) * (HEAD + 1.6)];
   const arms = {};
   for (const s of ["l", "r"]) {
     const ua = p[s + "a"] + p.lean * 0.6, ea = ua + p[s + "e"];
@@ -147,14 +149,54 @@ export function solve(p) {
     J.headAngle += p.rot;
     J.swordAngle -= p.rot;
   }
-  if (!p.air) {
+  // fade foot planting with `air` so blends between airborne and grounded keys don't pop
+  const ground = 1 - Math.min(1, p.air);
+  if (ground > 0) {
     let maxY = -Infinity;
     const pts = p.rot ? allPoints(J) : [legs.l.foot, legs.r.foot];
     for (const pt of pts) maxY = Math.max(maxY, pt[1]);
-    const lift = p.rot ? maxY + 2 : maxY;
+    const lift = (p.rot ? maxY + 2 : maxY) * ground;
     for (const pt of allPoints(J)) pt[1] -= lift;
   }
+  J.planted = ground > 0.99;
   return J;
+}
+
+// Piecewise eased interpolation over evenly spaced [x, y] keys, matching samplePose timing.
+export function sampleKeys(keys, q) {
+  const x = Math.max(0, Math.min(0.9999, q)) * (keys.length - 1);
+  const i = Math.floor(x), t = smooth(x - i);
+  const a = keys[i], b = keys[i + 1];
+  return [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t];
+}
+
+// Two-bone IK: shoulder -> target, elbow bent backwards (away from the facing side).
+function reachArm(S, T) {
+  const dx = T[0] - S[0], dy = T[1] - S[1];
+  const d0 = Math.hypot(dx, dy) || 1e-3;
+  const d = Math.min(Math.max(d0, 1.5), (UPPER + FORE) * 0.995);
+  const ux = dx / d0, uy = dy / d0;
+  const cosA = Math.max(-1, Math.min(1, (UPPER * UPPER + d * d - FORE * FORE) / (2 * UPPER * d)));
+  const sinA = Math.sqrt(1 - cosA * cosA);
+  const e1 = [S[0] + UPPER * (ux * cosA - uy * sinA), S[1] + UPPER * (uy * cosA + ux * sinA)];
+  const e2 = [S[0] + UPPER * (ux * cosA + uy * sinA), S[1] + UPPER * (uy * cosA - ux * sinA)];
+  const elbow = e1[0] < e2[0] ? e1 : e2;
+  const hand = [S[0] + ux * d, S[1] + uy * d];
+  return { elbow, hand, angle: Math.atan2(hand[0] - elbow[0], hand[1] - elbow[1]) };
+}
+
+// Pin both hands to a ledge corner g (local space). Hands hook over the lip while the
+// shoulders are below it and slide to palms-flat on top as the body mantles over.
+function applyGrip(J, g, w) {
+  const m = Math.max(0, Math.min(1, (g[1] - J.shoulder[1] + 6) / 14));
+  for (const s of ["l", "r"]) {
+    const arm = J.arms[s];
+    const gx = g[0] + (s === "l" ? 2.2 : 0);
+    const W = [gx - 1 + 2.5 * m, g[1] + 1.5 - 3.1 * m];
+    const T = [arm.hand[0] + (W[0] - arm.hand[0]) * w, arm.hand[1] + (W[1] - arm.hand[1]) * w];
+    Object.assign(arm, reachArm(J.shoulder, T));
+    arm.grip = w > 0.5 ? { m, off: [arm.hand[0] - W[0], arm.hand[1] - W[1]] } : null;
+  }
 }
 
 function allPoints(J) {
@@ -162,22 +204,58 @@ function allPoints(J) {
 }
 
 // ---------- drawing ----------
+// Painted-rotoscope look: tapered limbs with form shading lit from the upper front,
+// a dark ink outline, and a grime texture laid over every part.
 export const STYLES = {
-  prince: { skin: "#e0ac7e", pants: "#f4efe6", pantsShade: "#c9c2b6", vest: "#efe9df", sash: "#c8323c", turban: "#f7f3ea", hair: "#2a1a10", shoe: "#5a3420", sleeves: false },
-  jailer: { skin: "#b98458", pants: "#3f4a35", pantsShade: "#2c3426", vest: "#6b4a2b", sash: "#8a6a2a", turban: "#4a5a30", hair: "#1a1008", shoe: "#2a1a10", sleeves: true, sleeve: "#5a4026", belly: true },
-  shade: { skin: "#7ba7b8", pants: "#1d3a48", pantsShade: "#132833", vest: "#24566a", sash: "#56d8ff", turban: "#1a2f3a", hair: "#0a1418", shoe: "#0e1a20", sleeves: true, sleeve: "#1d4a5c" },
-  palace: { skin: "#c48d60", pants: "#7a1e22", pantsShade: "#5a1418", vest: "#2a3e7a", sash: "#e0b040", turban: "#c42c30", hair: "#1a1008", shoe: "#3a1a10", sleeves: true, sleeve: "#22346a" },
-  jaffar: { skin: "#c9946a", pants: "#3a1050", pantsShade: "#2a0a3a", vest: "#5a1a78", sash: "#e0b040", turban: "#2a0838", hair: "#120610", shoe: "#1a0820", sleeves: true, sleeve: "#4a1466", robe: "#5a1a78", tall: true, beard: true },
-  princess: { skin: "#e8b48c", pants: "#d77a9a", pantsShade: "#b85a7c", vest: "#f2c6d4", sash: "#e8c050", turban: null, hair: "#1a0c06", shoe: "#a04060", sleeves: true, sleeve: "#f2c6d4", dress: "#e07fa2", longHair: true },
+  prince: { skin: "#c48d68", pants: "#e6dfd0", pantsShade: "#bbb2a2", vest: "#2c3152", trim: "#c9a24a", sash: "#a32a28", turban: "#efe9dc", jewel: "#c9a24a", hair: "#1c130d", shoe: "#5a3a22", bracer: "#7a5a2e", baggy: true, bareChest: true, tail: true, grime: 0.3 },
+  jailer: { skin: "#94654a", pants: "#3b3a2a", pantsShade: "#2a291e", vest: "#4b3826", sash: "#5e4a2a", cap: "#2f2a20", hair: "#140d08", shoe: "#22180f", boots: true, sleeves: true, sleeve: "#3d3022", belly: true, strap: true, beard: "full", stubble: 0.4 },
+  shade: { skin: "#6f8f9a", pants: "#1d3440", pantsShade: "#13252e", vest: "#22495a", sash: "#4cbfe0", turban: "#192c36", hair: "#0a1418", shoe: "#0e1a20", boots: true, sleeves: true, sleeve: "#1c4252", stubble: 0.2 },
+  palace: { skin: "#a87552", pants: "#5c1e1c", pantsShade: "#431514", vest: "#25304c", sash: "#a3802e", turban: "#7c2520", hair: "#160e08", shoe: "#2a160e", boots: true, sleeves: true, sleeve: "#1f2943", strap: true, beard: "full", stubble: 0.3 },
+  jaffar: { skin: "#a97c5a", pants: "#2e0f3a", pantsShade: "#220a2c", vest: "#45174f", sash: "#a3802e", turban: "#1e0a26", hair: "#1a1316", shoe: "#170a1c", sleeves: true, sleeve: "#3a1345", robe: "#40164a", tall: true, beard: "long", stubble: 0.3 },
+  princess: { skin: "#d2a07c", pants: "#a35a6e", pantsShade: "#874a5c", vest: "#c79aa4", sash: "#b8913c", hair: "#1a0c06", shoe: "#6e2e40", sleeves: true, sleeve: "#c79aa4", dress: "#9c5468", longHair: true, grime: 0.35 },
 };
 
-function limb(ctx, a, b, w, color) {
-  ctx.strokeStyle = color;
-  ctx.lineWidth = w;
-  ctx.beginPath();
-  ctx.moveTo(a[0], a[1]);
-  ctx.lineTo(b[0], b[1]);
-  ctx.stroke();
+const LX = 0.42, LY = -0.91; // light direction (local space): upper front
+const INK = "rgba(16,9,5,0.92)";
+const SIL_COLOR = "#05070d";
+let SIL = false;
+let GRIME = 1; // per-style multiplier on the grain texture
+let grain = null;
+const silCache = new WeakMap();
+
+function silhouetteOf(st) {
+  let o = silCache.get(st);
+  if (!o) {
+    o = {};
+    for (const [k, v] of Object.entries(st)) o[k] = typeof v === "string" && v[0] === "#" ? SIL_COLOR : v;
+    o.sash = "#0b1a2a";
+    silCache.set(st, o);
+  }
+  return o;
+}
+
+function grainPattern(ctx) {
+  if (grain) return grain;
+  const c = document.createElement("canvas");
+  c.width = c.height = 64;
+  const g = c.getContext("2d");
+  for (let i = 0; i < 420; i++) {
+    const a = 0.08 + Math.random() * 0.3;
+    g.fillStyle = Math.random() < 0.8 ? `rgba(25,14,6,${a})` : `rgba(255,236,200,${a * 0.5})`;
+    g.fillRect(Math.random() * 64, Math.random() * 64, 1 + Math.random() * 1.5, 1);
+  }
+  g.strokeStyle = "rgba(30,18,8,0.22)";
+  g.lineWidth = 0.7;
+  for (let i = 0; i < 26; i++) {
+    const x = Math.random() * 64, y = Math.random() * 64;
+    g.beginPath();
+    g.moveTo(x, y);
+    g.lineTo(x + (Math.random() - 0.5) * 5, y + 3 + Math.random() * 6);
+    g.stroke();
+  }
+  grain = ctx.createPattern(c, "repeat");
+  grain.setTransform?.(new DOMMatrix().scale(0.5));
+  return grain;
 }
 
 function shade(hex, k) {
@@ -186,33 +264,449 @@ function shade(hex, k) {
   return `rgb(${Math.min(255, r)},${Math.min(255, g)},${Math.min(255, b)})`;
 }
 
-function drawLeg(ctx, J, s, st, dark) {
-  const { knee, foot } = J.legs[s];
-  const k = dark ? 0.78 : 1;
-  ctx.lineCap = "round";
-  limb(ctx, J.hip, knee, 10.5, shade(dark ? st.pantsShade : st.pants, dark ? 0.95 : 1));
-  limb(ctx, knee, foot, 7.5, shade(dark ? st.pantsShade : st.pants, k));
-  // curled slipper
-  ctx.fillStyle = shade(st.shoe, k);
+const along = (a, b, t) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t];
+const mv = (ctx, p) => ctx.moveTo(p[0], p[1]);
+const ln = (ctx, p) => ctx.lineTo(p[0], p[1]);
+const qc = (ctx, c, p) => ctx.quadraticCurveTo(c[0], c[1], p[0], p[1]);
+
+// Fill the current path, then grime and ink it.
+function paint(ctx, fill, ink = 0.75, grime = 0.6) {
+  ctx.fillStyle = fill;
+  ctx.fill();
+  if (SIL) return;
+  if (grime) {
+    const a = ctx.globalAlpha;
+    ctx.globalAlpha = a * grime * GRIME;
+    ctx.fillStyle = grainPattern(ctx);
+    ctx.fill();
+    ctx.globalAlpha = a;
+  }
+  if (ink) {
+    ctx.strokeStyle = INK;
+    ctx.lineWidth = ink;
+    ctx.stroke();
+  }
+}
+
+function strokeDetail(ctx, color, w, pts) {
+  if (SIL) return;
+  ctx.strokeStyle = color;
+  ctx.lineWidth = w;
   ctx.beginPath();
-  ctx.moveTo(foot[0] - 3, foot[1] - 2);
-  ctx.quadraticCurveTo(foot[0] + 5, foot[1] + 1, foot[0] + 8, foot[1] - 3);
-  ctx.lineTo(foot[0] + 4, foot[1] + 1.5);
-  ctx.lineTo(foot[0] - 3, foot[1] + 1.5);
-  ctx.closePath();
+  mv(ctx, pts[0]);
+  if (pts.length === 3) qc(ctx, pts[1], pts[2]);
+  else for (let i = 1; i < pts.length; i++) ln(ctx, pts[i]);
+  ctx.stroke();
+}
+
+// Gradient across a limb's width: lit side towards the light, core shadow on the far side.
+function formFill(ctx, a, b, r, base, k = 1) {
+  if (SIL) return base;
+  const dx = b[0] - a[0], dy = b[1] - a[1], L = Math.hypot(dx, dy) || 1;
+  const nx = -dy / L, ny = dx / L;
+  const c = nx * LX + ny * LY;
+  const mx = (a[0] + b[0]) / 2, my = (a[1] + b[1]) / 2;
+  const g = ctx.createLinearGradient(mx + nx * r, my + ny * r, mx - nx * r, my - ny * r);
+  g.addColorStop(0, shade(base, k * (0.86 + 0.34 * c)));
+  g.addColorStop(0.5, shade(base, k * 0.9));
+  g.addColorStop(1, shade(base, k * (0.86 - 0.34 * c)));
+  return g;
+}
+
+// Paint over the ink seam where two limb segments overlap at a joint.
+function hideSeam(ctx, j, a, b, r, base, k) {
+  if (SIL) return;
+  ctx.beginPath();
+  ctx.arc(j[0], j[1], r, 0, Math.PI * 2);
+  ctx.fillStyle = formFill(ctx, a, b, r + 0.6, base, k);
   ctx.fill();
 }
 
-function drawArm(ctx, J, s, st, dark) {
-  const { elbow, hand } = J.arms[s];
-  const k = dark ? 0.75 : 1;
-  ctx.lineCap = "round";
-  limb(ctx, J.shoulder, elbow, 5.2, shade(st.sleeves ? st.sleeve : st.skin, k));
-  limb(ctx, elbow, hand, 4.2, shade(st.skin, k));
-  ctx.fillStyle = shade(st.skin, k);
+// Tapered limb: radius r0 at a, r1 at b, mid-bulge ra on the +normal side and rb on the other.
+function capsule(ctx, a, b, r0, r1, ra = (r0 + r1) / 2, rb = ra) {
+  const dx = b[0] - a[0], dy = b[1] - a[1], L = Math.hypot(dx, dy) || 1e-3;
+  const ux = dx / L, uy = dy / L, nx = -uy, ny = ux;
+  const th = Math.atan2(uy, ux);
+  const mx = (a[0] + b[0]) / 2, my = (a[1] + b[1]) / 2, rm = (r0 + r1) / 2;
   ctx.beginPath();
-  ctx.arc(hand[0], hand[1], 2.3, 0, Math.PI * 2);
-  ctx.fill();
+  ctx.moveTo(a[0] + nx * r0, a[1] + ny * r0);
+  ctx.quadraticCurveTo(mx + nx * (2 * ra - rm), my + ny * (2 * ra - rm), b[0] + nx * r1, b[1] + ny * r1);
+  ctx.arc(b[0], b[1], r1, th + Math.PI / 2, th - Math.PI / 2, true);
+  ctx.quadraticCurveTo(mx - nx * (2 * rb - rm), my - ny * (2 * rb - rm), a[0] - nx * r0, a[1] - ny * r0);
+  ctx.arc(a[0], a[1], r0, th - Math.PI / 2, th + Math.PI / 2, true);
+  ctx.closePath();
+}
+
+function drawShoe(ctx, f, fwd, st, k) {
+  const up = [fwd[1], -fwd[0]];
+  const P = (a, b) => [f[0] + fwd[0] * a + up[0] * b, f[1] + fwd[1] * a + up[1] * b];
+  ctx.beginPath();
+  mv(ctx, P(-1.6, 3.8));
+  qc(ctx, P(-3.0, 2.6), P(-2.6, 0));
+  ln(ctx, P(5.4, 0));
+  if (st.baggy) qc(ctx, P(7.6, 0.1), P(7.2, 1.9));
+  else qc(ctx, P(6.6, 0.3), P(6.0, 1.6));
+  qc(ctx, P(3.6, 2.2), P(1.4, 4.0));
+  ctx.closePath();
+  let fill = shade(st.shoe, k);
+  if (!SIL) {
+    const t = P(0, 4), b = P(0, 0);
+    fill = ctx.createLinearGradient(t[0], t[1], b[0], b[1]);
+    fill.addColorStop(0, shade(st.shoe, k * 1.25));
+    fill.addColorStop(1, shade(st.shoe, k * 0.7));
+  }
+  paint(ctx, fill, 0.6, 0.7);
+}
+
+function drawLeg(ctx, J, s, st, back, planted) {
+  const { knee, foot } = J.legs[s];
+  const hip = J.hip;
+  const k = back ? 0.72 : 1;
+  const sl = Math.hypot(foot[0] - knee[0], foot[1] - knee[1]) || 1;
+  const sd = [(foot[0] - knee[0]) / sl, (foot[1] - knee[1]) / sl];
+  const fwd = planted && foot[1] > -1.5 ? [1, 0] : [sd[1], -sd[0]];
+  drawShoe(ctx, foot, fwd, st, k);
+  const pc = back ? st.pantsShade : st.pants;
+  if (st.baggy) {
+    capsule(ctx, hip, knee, 5.6, 4.4, 6.0, 6.5);
+    paint(ctx, formFill(ctx, hip, knee, 6.5, pc, k));
+    const ank = along(knee, foot, 0.88);
+    capsule(ctx, knee, ank, 4.4, 2.2, 5.7, 4.8);
+    paint(ctx, formFill(ctx, knee, ank, 5.7, pc, k));
+    hideSeam(ctx, knee, knee, ank, 3.6, pc, k);
+    const fold = `rgba(40,28,16,${(back ? 0.25 : 0.4) * (st.grime ?? 1) ** 0.5})`;
+    const n = [-sd[1], sd[0]];
+    for (const t of [0.35, 0.6]) {
+      const c = along(knee, ank, t);
+      strokeDetail(ctx, fold, 0.6, [[c[0] + n[0] * 3.5, c[1] + n[1] * 3.5], [c[0] + sd[0] * 2, c[1] + sd[1] * 2], [c[0] - n[0] * 3, c[1] - n[1] * 3 + 1]]);
+    }
+    const th = along(hip, knee, 0.55);
+    strokeDetail(ctx, fold, 0.6, [[th[0] - 2, th[1] - 3], [th[0] + 1, th[1]], [th[0] + 3, th[1] + 3.5]]);
+    capsule(ctx, along(knee, foot, 0.82), along(knee, foot, 0.95), 2.4, 2.2);
+    paint(ctx, shade(st.shoe, k * 1.1), 0.5, 0.5);
+  } else {
+    capsule(ctx, hip, knee, 5.0, 3.7, 5.2, 5.5);
+    paint(ctx, formFill(ctx, hip, knee, 5.5, pc, k));
+    capsule(ctx, knee, foot, 3.7, 2.3, 4.4, 3.5);
+    paint(ctx, formFill(ctx, knee, foot, 4.4, pc, k));
+    hideSeam(ctx, knee, knee, foot, 3.0, pc, k);
+    if (st.boots) {
+      const b0 = along(knee, foot, 0.42), b1 = along(knee, foot, 0.9);
+      capsule(ctx, b0, b1, 3.4, 2.7, 3.6, 3.2);
+      paint(ctx, formFill(ctx, b0, b1, 3.6, st.shoe, k * 1.15), 0.6, 0.7);
+    }
+  }
+}
+
+function drawHand(ctx, arm, st, k, fist) {
+  const h = arm.hand;
+  const col = shade(st.skin, k);
+  if (arm.grip && Math.hypot(arm.grip.off[0], arm.grip.off[1]) < 2.5) {
+    // fingers hooked over the lip (m=0) or palm flat on the ledge top (m=1)
+    const m = arm.grip.m;
+    const K = [h[0] + 1.5 + 2.0 * m, h[1] - 2.5 + 3.1 * m];
+    const F = [K[0] + 3.5 - 1.0 * m, K[1] + 0.1];
+    const path = () => { ctx.beginPath(); mv(ctx, h); ln(ctx, K); ln(ctx, F); };
+    if (!SIL) {
+      path();
+      ctx.strokeStyle = INK;
+      ctx.lineWidth = 3.4;
+      ctx.stroke();
+    }
+    path();
+    ctx.strokeStyle = col;
+    ctx.lineWidth = 2.5;
+    ctx.stroke();
+    strokeDetail(ctx, "rgba(40,20,10,0.45)", 0.45, [[K[0] + 0.6, K[1] - 1.1], [K[0] + 0.6, K[1] + 1.1]]);
+    return;
+  }
+  const dx = Math.sin(arm.angle), dy = Math.cos(arm.angle);
+  const rot = Math.atan2(dy, dx);
+  ctx.beginPath();
+  ctx.ellipse(h[0] + dx * 1.3, h[1] + dy * 1.3, fist ? 1.9 : 2.4, fist ? 1.7 : 1.35, rot, 0, Math.PI * 2);
+  paint(ctx, col, 0.55, 0);
+  if (!fist) {
+    ctx.beginPath();
+    ctx.ellipse(h[0] + dx * 0.9 - dy * 1.1, h[1] + dy * 0.9 + dx * 1.1, 1.1, 0.65, rot + 0.5, 0, Math.PI * 2);
+    paint(ctx, shade(st.skin, k * 0.85), 0.45, 0);
+  }
+}
+
+function drawArm(ctx, J, s, st, back, fist) {
+  const arm = J.arms[s];
+  const { elbow, hand } = arm;
+  const sh = J.shoulder;
+  const k = back ? 0.7 : 1;
+  capsule(ctx, sh, elbow, 2.9, 2.0, 3.1, 2.9);
+  paint(ctx, formFill(ctx, sh, elbow, 3.1, st.sleeves ? st.sleeve : st.skin, k));
+  capsule(ctx, elbow, hand, 2.1, 1.35, 2.35, 2.15);
+  paint(ctx, formFill(ctx, elbow, hand, 2.35, st.skin, k));
+  if (!st.sleeves) hideSeam(ctx, elbow, elbow, hand, 1.5, st.skin, k);
+  if (st.sleeves) {
+    const e1 = along(elbow, hand, 0.62);
+    capsule(ctx, elbow, e1, 2.6, 2.2, 2.7, 2.6);
+    paint(ctx, formFill(ctx, elbow, e1, 2.7, st.sleeve, k));
+  } else if (st.bracer) {
+    const b0 = along(elbow, hand, 0.48), b1 = along(elbow, hand, 0.92);
+    capsule(ctx, b0, b1, 2.0, 1.65);
+    paint(ctx, formFill(ctx, b0, b1, 2.0, st.bracer, k * 1.2), 0.55, 0.8);
+  }
+  drawHand(ctx, arm, st, k, fist);
+}
+
+function drawRobe(ctx, J, st) {
+  const c = st.robe || st.dress;
+  const lf = J.legs.l.foot, rf = J.legs.r.foot;
+  const lowY = Math.max(lf[1], rf[1]) - (st.dress ? 1 : 5);
+  const x0 = Math.min(lf[0], rf[0]) - 8, x1 = Math.max(lf[0], rf[0]) + 8;
+  const [sx, sy] = J.shoulder;
+  ctx.beginPath();
+  ctx.moveTo(sx - 5, sy);
+  ctx.lineTo(sx + 5, sy);
+  ctx.quadraticCurveTo(x1 - 1, (sy + lowY) / 2, x1, lowY);
+  ctx.quadraticCurveTo((x0 + x1) / 2, lowY + 2, x0, lowY);
+  ctx.quadraticCurveTo(x0 + 1, (sy + lowY) / 2, sx - 5, sy);
+  ctx.closePath();
+  let fill = c;
+  if (!SIL) {
+    fill = ctx.createLinearGradient(x1, sy, x0, lowY);
+    fill.addColorStop(0, shade(c, 1.2));
+    fill.addColorStop(0.5, shade(c, 0.9));
+    fill.addColorStop(1, shade(c, 0.55));
+  }
+  paint(ctx, fill);
+  const fold = "rgba(10,4,12,0.4)";
+  for (const t of [0.25, 0.5, 0.75]) {
+    const bx = x0 + (x1 - x0) * t;
+    strokeDetail(ctx, fold, 0.6, [[sx + (t - 0.5) * 6, sy + 12], [bx + 1, (sy + lowY) / 2 + 6], [bx, lowY - 1]]);
+  }
+  strokeDetail(ctx, st.sash, 0.9, [[x0 + 1, lowY - 1.5], [(x0 + x1) / 2, lowY + 0.5], [x1 - 1, lowY - 1.5]]);
+}
+
+function drawTorso(ctx, J, st) {
+  const [hx, hy] = J.hip, [sx, sy] = J.neck;
+  const tl = Math.hypot(sx - hx, sy - hy) || 1;
+  const ux = (sx - hx) / tl, uy = (sy - hy) / tl, fx = -uy, fy = ux;
+  const P = (t, f) => [hx + ux * tl * t + fx * f, hy + uy * tl * t + fy * f];
+  const body = () => {
+    ctx.beginPath();
+    mv(ctx, P(0, 4.8));
+    qc(ctx, P(0.3, 4.0), P(0.62, 5.9));
+    qc(ctx, P(0.92, 6.8), P(1.02, 2.2));
+    qc(ctx, P(1.1, -1.8), P(0.9, -5.0));
+    qc(ctx, P(0.6, -5.6), P(0.3, -4.5));
+    qc(ctx, P(0.1, -4.2), P(0, -5.3));
+    qc(ctx, P(-0.1, 0), P(0, 4.8));
+    ctx.closePath();
+  };
+  const across = (c, kf = 1) => {
+    if (SIL) return c;
+    const a = P(0.6, 6.5), b = P(0.6, -6);
+    const g = ctx.createLinearGradient(a[0], a[1], b[0], b[1]);
+    g.addColorStop(0, shade(c, 1.15 * kf));
+    g.addColorStop(0.45, shade(c, 0.92 * kf));
+    g.addColorStop(1, shade(c, 0.55 * kf));
+    return g;
+  };
+
+  if (st.belly) {
+    const b = P(0.35, 4.2);
+    ctx.beginPath();
+    ctx.ellipse(b[0], b[1], 5.5, 6.5, Math.atan2(uy, ux), 0, Math.PI * 2);
+    paint(ctx, across(st.vest));
+  }
+  body();
+  paint(ctx, across(st.bareChest ? st.skin : st.vest));
+  if (st.bareChest) {
+    strokeDetail(ctx, "rgba(50,25,12,0.45)", 0.6, [P(0.78, 6.0), P(0.66, 4.2), P(0.7, 2.4)]);
+    strokeDetail(ctx, "rgba(50,25,12,0.3)", 0.5, [P(0.48, 4.6), P(0.42, 3.6), P(0.44, 2.8)]);
+    strokeDetail(ctx, "rgba(50,25,12,0.3)", 0.5, [P(0.3, 4.4), P(0.25, 3.5), P(0.27, 2.6)]);
+    // open vest over the back and shoulders
+    ctx.beginPath();
+    mv(ctx, P(1.02, 1.0));
+    qc(ctx, P(0.75, 3.4), P(0.42, 2.3));
+    ln(ctx, P(0.12, 3.2));
+    ln(ctx, P(0.06, -5.0));
+    qc(ctx, P(0.3, -4.6), P(0.6, -5.7));
+    qc(ctx, P(0.95, -5.2), P(1.08, -1.8));
+    ctx.closePath();
+    paint(ctx, across(st.vest));
+    strokeDetail(ctx, st.trim || "rgba(210,180,130,0.35)", st.trim ? 0.7 : 0.5, [P(1.0, 0.8), P(0.75, 3.1), P(0.42, 2.1)]);
+  } else if (st.strap) {
+    strokeDetail(ctx, INK, 2.2, [P(0.95, -4.2), P(0.15, 4.4)]);
+    strokeDetail(ctx, shade("#4a3220", 1), 1.4, [P(0.95, -4.2), P(0.15, 4.4)]);
+  }
+
+  // sash, knotted at the back with two ragged tails
+  ctx.beginPath();
+  mv(ctx, P(0.03, -5.4));
+  ln(ctx, P(0.03, 5.1));
+  qc(ctx, P(0.13, 5.3), P(0.22, 4.3));
+  ln(ctx, P(0.22, -4.7));
+  ctx.closePath();
+  paint(ctx, across(st.sash, 1.1), 0.6, 0.5);
+  if (!st.robe && !st.dress) {
+    const sway = Math.sin(performance.now() / 200) * 1.2;
+    const knot = P(0.12, -5.3);
+    for (const [len, off] of [[10, 0], [7.5, 2]]) {
+      const end = [knot[0] - fx * (5 + off) - 2, knot[1] + len + sway * (1 + off / 2)];
+      capsule(ctx, knot, end, 1.4, 0.6, 1.3, 1.1);
+      paint(ctx, formFill(ctx, knot, end, 1.4, st.sash, 0.85), 0.5, 0.5);
+    }
+  }
+}
+
+function drawHead(ctx, J, st, opts) {
+  const [hdx, hdy] = J.head;
+  const ha = J.headAngle;
+  const base = [hdx + Math.cos(ha) * -0.4 - Math.sin(ha) * 4.2, hdy + Math.sin(ha) * -0.4 + Math.cos(ha) * 4.2];
+  const nk = [J.neck[0], J.neck[1] + 1];
+  capsule(ctx, nk, base, 2.2, 1.9);
+  paint(ctx, formFill(ctx, nk, base, 2.2, st.skin, 0.85), 0.6, 0.4);
+
+  ctx.save();
+  ctx.translate(hdx, hdy);
+  ctx.rotate(ha);
+  const skin = st.skin;
+  const lit = (c, a = [4, -5], b = [-4, 4]) => {
+    if (SIL) return c;
+    const g = ctx.createLinearGradient(a[0], a[1], b[0], b[1]);
+    g.addColorStop(0, shade(c, 1.18));
+    g.addColorStop(0.55, shade(c, 0.9));
+    g.addColorStop(1, shade(c, 0.58));
+    return g;
+  };
+
+  if (st.longHair) {
+    ctx.beginPath();
+    ctx.ellipse(-3.4, 5, 3.6, 9.5, 0.15, 0, Math.PI * 2);
+    paint(ctx, lit(st.hair));
+  }
+  if (st.tail && st.turban) {
+    const sway = Math.sin(performance.now() / 260) * 0.8;
+    capsule(ctx, [-4.6, -1.5], [-7.2 + sway, 5.5], 1.6, 0.8, 1.5, 1.3);
+    paint(ctx, formFill(ctx, [-4.6, -1.5], [-7.2, 5.5], 1.6, st.turban, 0.8), 0.6, 0.6);
+  }
+
+  // skull and profile in a single outline
+  ctx.beginPath();
+  mv(ctx, [-1.8, 4.4]);
+  qc(ctx, [-5.2, 3.2], [-4.9, -1.2]);
+  qc(ctx, [-4.4, -5.0], [-0.4, -5.3]);
+  qc(ctx, [3.4, -5.4], [4.1, -2.3]);
+  ln(ctx, [4.55, -1.2]);
+  ln(ctx, [4.25, -0.5]);
+  ln(ctx, [5.9, 1.5]);
+  qc(ctx, [5.6, 2.0], [4.7, 1.9]);
+  ln(ctx, [4.95, 2.5]);
+  ln(ctx, [4.55, 2.9]);
+  ln(ctx, [4.75, 3.4]);
+  qc(ctx, [4.9, 4.6], [3.6, 5.0]);
+  qc(ctx, [1.6, 5.3], [0.1, 3.9]);
+  ln(ctx, [-1.8, 4.4]);
+  ctx.closePath();
+  paint(ctx, lit(skin), 0.7, 0.45);
+
+  if (!SIL) {
+    if (st.stubble) {
+      ctx.beginPath();
+      mv(ctx, [0.3, 1.8]);
+      ln(ctx, [4.7, 2.0]);
+      ln(ctx, [4.8, 3.6]);
+      qc(ctx, [4.6, 4.8], [3.6, 5.0]);
+      qc(ctx, [1.6, 5.3], [0.1, 3.9]);
+      ctx.closePath();
+      ctx.fillStyle = `rgba(25,15,8,${st.stubble})`;
+      ctx.fill();
+    }
+    ctx.fillStyle = "rgba(30,15,8,0.45)";
+    ctx.beginPath();
+    ctx.ellipse(2.8, -0.6, 1.5, 1.0, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = "#120a06";
+    ctx.beginPath();
+    ctx.ellipse(3.15, -0.55, 0.65, 0.4, 0, 0, Math.PI * 2);
+    ctx.fill();
+    strokeDetail(ctx, shade(st.hair, 1), 0.8, [[1.9, -1.9], [4.3, -1.5]]);
+    strokeDetail(ctx, "rgba(40,20,10,0.3)", 0.5, [[2.0, 1.3], [3.0, 1.6], [3.8, 1.2]]);
+    strokeDetail(ctx, "rgba(40,15,8,0.6)", 0.45, [[4.0, 2.75], [4.6, 2.85]]);
+    ctx.beginPath();
+    ctx.ellipse(-0.8, 0.7, 1.0, 1.5, 0.1, 0, Math.PI * 2);
+    paint(ctx, shade(skin, 0.72), 0.4, 0);
+  } else {
+    ctx.fillStyle = opts.eye || "#8ff";
+    ctx.beginPath();
+    ctx.ellipse(3.1, -0.6, 1.3, 0.8, 0, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  if (st.beard) {
+    ctx.beginPath();
+    mv(ctx, [0.2, 1.6]);
+    ln(ctx, [4.7, 2.3]);
+    ln(ctx, [4.9, 3.6]);
+    if (st.beard === "long") qc(ctx, [4.4, 8], [2.6, 10.8]);
+    else qc(ctx, [4.8, 6.0], [2.6, 6.4]);
+    qc(ctx, [0.6, 6.0], [-0.8, 3.8]);
+    ctx.closePath();
+    paint(ctx, lit(st.hair), 0.55, 0.5);
+    strokeDetail(ctx, shade(skin, 0.5), 0.4, [[3.9, 2.8], [4.7, 2.9]]);
+  }
+
+  if (st.tall) {
+    ctx.beginPath();
+    mv(ctx, [-5.2, 0.2]);
+    qc(ctx, [-7, -12], [0.5, -17.5]);
+    qc(ctx, [7.5, -10], [5.0, -1.2]);
+    qc(ctx, [0, -3.2], [-5.2, 0.2]);
+    ctx.closePath();
+    paint(ctx, lit(st.turban, [5, -16], [-5, 0]));
+    strokeDetail(ctx, "rgba(0,0,0,0.4)", 0.6, [[4.6, -4], [-0.5, -6.5], [-5.6, -3]]);
+    strokeDetail(ctx, "rgba(0,0,0,0.4)", 0.6, [[3.8, -8.5], [-0.5, -11], [-5.0, -7.5]]);
+    ctx.beginPath();
+    ctx.arc(2.4, -5.2, 1.5, 0, Math.PI * 2);
+    paint(ctx, st.sash, 0.5, 0);
+  } else if (st.cap) {
+    ctx.beginPath();
+    mv(ctx, [4.1, -2.2]);
+    qc(ctx, [3.8, -6.8], [-0.8, -6.7]);
+    qc(ctx, [-5.4, -6.3], [-5.1, -0.4]);
+    qc(ctx, [-0.5, -2.9], [4.1, -2.2]);
+    ctx.closePath();
+    paint(ctx, lit(st.cap));
+    strokeDetail(ctx, "rgba(200,170,120,0.25)", 0.5, [[3.6, -2.6], [-0.4, -3.4], [-4.8, -1.0]]);
+  } else if (st.turban) {
+    ctx.beginPath();
+    mv(ctx, [4.3, -1.6]);
+    qc(ctx, [5.3, -7.6], [-0.5, -8.6]);
+    qc(ctx, [-6.6, -7.8], [-5.5, 0.8]);
+    qc(ctx, [-1.5, -2.6], [4.3, -1.6]);
+    ctx.closePath();
+    paint(ctx, lit(st.turban, [4, -9], [-5, 0]));
+    strokeDetail(ctx, "rgba(30,18,8,0.4)", 0.6, [[3.9, -3.4], [-0.5, -6.0], [-5.2, -1.4]]);
+    strokeDetail(ctx, "rgba(30,18,8,0.35)", 0.6, [[3.0, -5.8], [-1.0, -8.0], [-5.5, -4.2]]);
+    strokeDetail(ctx, "rgba(255,240,210,0.2)", 0.5, [[3.6, -4.4], [-0.5, -7.0], [-5.3, -2.8]]);
+    if (st.jewel) {
+      ctx.beginPath();
+      ctx.ellipse(2.6, -4.4, 1.1, 1.4, 0.2, 0, Math.PI * 2);
+      paint(ctx, st.jewel, 0.45, 0);
+      if (!SIL) {
+        ctx.fillStyle = "#7a1a1e";
+        ctx.beginPath();
+        ctx.arc(2.6, -4.4, 0.55, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+  } else {
+    ctx.beginPath();
+    mv(ctx, [4.0, -2.6]);
+    qc(ctx, [2.2, -6.4], [-1.0, -5.9]);
+    qc(ctx, [-5.4, -5.2], [-5.0, 1.0]);
+    qc(ctx, [-1.0, -2.2], [4.0, -2.6]);
+    ctx.closePath();
+    paint(ctx, lit(st.hair), 0.6, 0.5);
+  }
+  ctx.restore();
 }
 
 function drawSword(ctx, J) {
@@ -222,176 +716,76 @@ function drawSword(ctx, J) {
   const nx = -dy, ny = dx;
   const L = 27;
   const tip = [hx + dx * L, hy + dy * L];
-  // guard
-  ctx.strokeStyle = "#d9a83a";
-  ctx.lineWidth = 2;
+  capsule(ctx, [hx - dx * 3.6, hy - dy * 3.6], [hx, hy], 0.9, 0.9);
+  paint(ctx, "#2e1c10", 0.5, 0);
   ctx.beginPath();
-  ctx.moveTo(hx + nx * 4, hy + ny * 4);
-  ctx.lineTo(hx - nx * 4, hy - ny * 4);
-  ctx.stroke();
-  // curved blade
-  const g = ctx.createLinearGradient(hx, hy, tip[0], tip[1]);
-  g.addColorStop(0, "#dfe6ee");
-  g.addColorStop(1, "#ffffff");
-  ctx.fillStyle = g;
+  ctx.arc(hx - dx * 4.3, hy - dy * 4.3, 1.2, 0, Math.PI * 2);
+  paint(ctx, "#8a6a2c", 0.5, 0);
   ctx.beginPath();
   ctx.moveTo(hx + nx * 1.4, hy + ny * 1.4);
   ctx.quadraticCurveTo(hx + dx * L * 0.6 + nx * 4.5, hy + dy * L * 0.6 + ny * 4.5, tip[0] + nx * 2.5, tip[1] + ny * 2.5);
   ctx.quadraticCurveTo(hx + dx * L * 0.55 + nx * 1, hy + dy * L * 0.55 + ny * 1, hx - nx * 1.4, hy - ny * 1.4);
   ctx.closePath();
-  ctx.fill();
+  let fill = SIL_COLOR;
+  if (!SIL) {
+    const m = [hx + dx * L * 0.5, hy + dy * L * 0.5];
+    fill = ctx.createLinearGradient(m[0] - nx * 1.5, m[1] - ny * 1.5, m[0] + nx * 4, m[1] + ny * 4);
+    fill.addColorStop(0, "#e2e6e8");
+    fill.addColorStop(0.4, "#9aa2a6");
+    fill.addColorStop(1, "#5c6468");
+  }
+  paint(ctx, fill, 0.6, 0.35);
+  strokeDetail(ctx, "rgba(30,34,38,0.5)", 0.5, [[hx + dx * 3 + nx * 1.2, hy + dy * 3 + ny * 1.2], [hx + dx * L * 0.45 + nx * 3, hy + dy * L * 0.45 + ny * 3], [hx + dx * L * 0.78 + nx * 3.2, hy + dy * L * 0.78 + ny * 3.2]]);
+  ctx.lineCap = "round";
+  if (!SIL) {
+    ctx.strokeStyle = INK;
+    ctx.lineWidth = 2.8;
+    ctx.beginPath();
+    ctx.moveTo(hx + nx * 4, hy + ny * 4);
+    ctx.lineTo(hx - nx * 4, hy - ny * 4);
+    ctx.stroke();
+  }
+  ctx.strokeStyle = SIL ? SIL_COLOR : "#a3802e";
+  ctx.lineWidth = 1.8;
+  ctx.beginPath();
+  ctx.moveTo(hx + nx * 4, hy + ny * 4);
+  ctx.lineTo(hx - nx * 4, hy - ny * 4);
+  ctx.stroke();
   return tip;
 }
 
+// opts.grip = { x, y, w }: world-space ledge corner the hands should hold, blended by w.
 export function drawFigure(ctx, x, y, facing, pose, st, opts = {}) {
   const J = solve(pose);
+  if (opts.grip && opts.grip.w > 0) applyGrip(J, [(opts.grip.x - x) * facing, opts.grip.y - y], opts.grip.w);
   ctx.save();
   ctx.translate(x, y);
   ctx.scale(facing, 1);
   if (opts.alpha != null) ctx.globalAlpha = opts.alpha;
-  if (opts.silhouette) {
-    st = { skin: "#04060c", pants: "#04060c", pantsShade: "#020308", vest: "#04060c", sash: "#0b1a2a", turban: "#04060c", hair: "#04060c", shoe: "#020308", sleeves: false };
+  SIL = !!opts.silhouette;
+  GRIME = st.grime ?? 1;
+  if (SIL) {
+    st = silhouetteOf(st);
     ctx.shadowColor = opts.glow || "rgba(80,220,255,0.9)";
     ctx.shadowBlur = 10;
   }
-  drawArm(ctx, J, "l", st, true);
-  drawLeg(ctx, J, "l", st, true);
-
-  // robe (vizier) / dress (princess)
-  if (st.robe || st.dress) {
-    const c = st.robe || st.dress;
-    const lf = J.legs.l.foot, rf = J.legs.r.foot;
-    const lowY = Math.max(lf[1], rf[1]) - (st.dress ? 1 : 6);
-    ctx.fillStyle = c;
-    ctx.beginPath();
-    ctx.moveTo(J.shoulder[0] - 5, J.shoulder[1]);
-    ctx.lineTo(J.shoulder[0] + 5, J.shoulder[1]);
-    ctx.lineTo(Math.max(lf[0], rf[0]) + 8, lowY);
-    ctx.lineTo(Math.min(lf[0], rf[0]) - 8, lowY);
-    ctx.closePath();
-    ctx.fill();
-    ctx.strokeStyle = st.sash;
-    ctx.lineWidth = 1;
-    ctx.stroke();
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
+  const robed = st.robe || st.dress;
+  drawArm(ctx, J, "l", st, true, false);
+  drawLeg(ctx, J, "l", st, true, J.planted);
+  if (robed) {
+    drawLeg(ctx, J, "r", st, false, J.planted);
+    drawRobe(ctx, J, st);
   }
-
-  // torso
-  const [hx, hy] = J.hip, [sx, sy] = J.neck;
-  const tdx = sx - hx, tdy = sy - hy;
-  const tl = Math.hypot(tdx, tdy) || 1;
-  const nx = -tdy / tl, ny = tdx / tl;
-  ctx.fillStyle = st.vest;
-  ctx.beginPath();
-  ctx.moveTo(hx + nx * 5.5, hy + ny * 5.5);
-  ctx.lineTo(sx + nx * 6.5, sy + ny * 6.5);
-  ctx.quadraticCurveTo(sx, sy - 2, sx - nx * 6.5, sy - ny * 6.5);
-  ctx.lineTo(hx - nx * 5.5, hy - ny * 5.5);
-  ctx.closePath();
-  ctx.fill();
-  if (!st.sleeves && !opts.silhouette) {
-    // open vest showing chest
-    ctx.fillStyle = st.skin;
-    ctx.beginPath();
-    ctx.moveTo(sx + nx * 2, sy + ny * 2);
-    ctx.lineTo(hx + tdx * 0.35 + nx * 0.5, hy + tdy * 0.35 + ny * 0.5);
-    ctx.lineTo(sx - nx * 1.5, sy - ny * 1.5);
-    ctx.closePath();
-    ctx.fill();
-  }
-  if (st.belly) {
-    ctx.fillStyle = st.vest;
-    ctx.beginPath();
-    ctx.ellipse(hx + tdx * 0.35 + 4, hy + tdy * 0.35, 6, 7, 0, 0, Math.PI * 2);
-    ctx.fill();
-  }
-  // sash
-  limb(ctx, [hx + nx * 5 + tdx * 0.12, hy + ny * 5 + tdy * 0.12], [hx - nx * 5 + tdx * 0.12, hy - ny * 5 + tdy * 0.12], 3.5, st.sash);
-  if (!st.robe && !st.dress) {
-    ctx.strokeStyle = st.sash;
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(hx - nx * 4, hy - ny * 4);
-    ctx.quadraticCurveTo(hx - nx * 6 - 2, hy + 6, hx - nx * 8 - 3, hy + 9 + Math.sin(performance.now() / 200) * 1.2);
-    ctx.stroke();
-  }
-
-  drawLeg(ctx, J, "r", st, false);
-
-  // head
-  const [hdx, hdy] = J.head;
-  const ha = J.headAngle;
-  ctx.save();
-  ctx.translate(hdx, hdy);
-  ctx.rotate(ha);
-  if (st.longHair) {
-    ctx.fillStyle = st.hair;
-    ctx.beginPath();
-    ctx.ellipse(-4, 6, 4.5, 11, 0.15, 0, Math.PI * 2);
-    ctx.fill();
-  }
-  ctx.fillStyle = st.skin;
-  ctx.beginPath();
-  ctx.ellipse(0.6, 0.5, HEAD * 0.92, HEAD, 0, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.beginPath(); // nose
-  ctx.moveTo(5, -1);
-  ctx.lineTo(7.4, 1.6);
-  ctx.lineTo(5, 2.4);
-  ctx.fill();
-  if (st.beard) {
-    ctx.fillStyle = st.hair;
-    ctx.beginPath();
-    ctx.moveTo(-1, 3);
-    ctx.quadraticCurveTo(3, 12, 6, 4);
-    ctx.lineTo(4, 3);
-    ctx.fill();
-  }
-  if (!opts.silhouette) {
-    ctx.fillStyle = "#1a0d06";
-    ctx.fillRect(2.8, -1.4, 1.6, 1.4);
-  } else {
-    ctx.fillStyle = opts.eye || "#8ff";
-    ctx.fillRect(2.6, -1.6, 2.4, 1.6);
-  }
-  if (st.turban) {
-    ctx.fillStyle = st.turban;
-    ctx.beginPath();
-    if (st.tall) {
-      ctx.moveTo(-6, -1);
-      ctx.quadraticCurveTo(-7, -14, 0, -20);
-      ctx.quadraticCurveTo(8, -12, 7, -1);
-      ctx.closePath();
-      ctx.fill();
-      ctx.fillStyle = "#e0b040";
-      ctx.beginPath();
-      ctx.arc(2, -6, 1.8, 0, Math.PI * 2);
-      ctx.fill();
-    } else {
-      ctx.ellipse(-0.5, -3, 7.2, 5.4, -0.15, Math.PI * 0.95, Math.PI * 2.1);
-      ctx.fill();
-      ctx.beginPath();
-      ctx.arc(-1, -6.5, 4.2, 0, Math.PI * 2);
-      ctx.fill();
-      if (!opts.silhouette) {
-        ctx.strokeStyle = "rgba(0,0,0,0.15)";
-        ctx.lineWidth = 0.8;
-        ctx.beginPath();
-        ctx.arc(-1, -4, 6, Math.PI * 1.1, Math.PI * 1.9);
-        ctx.stroke();
-      }
-    }
-  } else {
-    ctx.fillStyle = st.hair;
-    ctx.beginPath();
-    ctx.ellipse(-0.5, -2.5, 6.6, 4.6, -0.2, Math.PI * 0.9, Math.PI * 2.05);
-    ctx.fill();
-  }
-  ctx.restore();
-
+  drawTorso(ctx, J, st);
+  if (!robed) drawLeg(ctx, J, "r", st, false, J.planted);
+  drawHead(ctx, J, st, opts);
   let tip = null;
   if (opts.sword) tip = drawSword(ctx, J);
-  drawArm(ctx, J, "r", st, false);
+  drawArm(ctx, J, "r", st, false, !!opts.sword);
   ctx.restore();
+  SIL = false;
   if (tip) return [x + tip[0] * facing, y + tip[1]];
   return null;
 }
